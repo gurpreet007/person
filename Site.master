@@ -1,0 +1,59 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeFile="Site.master.cs" Inherits="SiteMaster" %>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head runat="server">
+    <title></title>
+
+    <link href="./Styles/Site.css" rel="stylesheet" type="text/css" />    
+    <link href="./Styles/myStyles.css" rel="stylesheet" type="text/css" />    
+    <link rel="stylesheet" href="./Scripts/jquery-ui-1.10.3.custom/css/smoothness/jquery-ui-1.10.3.custom.css" />
+    <script type="text/javascript" src="./Scripts/jquery-1.10.2.js"></script>
+    <script type="text/javascript" src="./Scripts/jquery.watermark.js"></script>
+    <script type="text/javascript" src="./Scripts/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.js"></script>
+    <script type="text/javascript" src="./Scripts/jquery.inputmask.bundle.min.js"></script>
+    <script type="text/javascript" src="./Scripts/myScript.js"></script>
+
+    <asp:ContentPlaceHolder ID="HeadContent" runat="server">
+    </asp:ContentPlaceHolder>
+</head>
+<body>
+    <form runat="server">
+    <div class="page">
+        <div class="header">
+            <div>
+                <h1>Posting and transfer system</h1>
+            </div>  
+            <div class="clear hideSkiplink">
+                <asp:Menu ID="NavMenu" runat="server" CssClass="menu" EnableViewState="false" 
+                    IncludeStyleBlock="false" Orientation="Horizontal">
+                    <Items>
+                        <asp:MenuItem Text="Actions" Value="Actions">
+                            <asp:MenuItem NavigateUrl="~/DataEntry.aspx" Text="Data Entry" 
+                                Value="Data Entry"></asp:MenuItem>
+                            <asp:MenuItem NavigateUrl="~/tnp_proposals.aspx" Text="Transfer/Promotion" 
+                                Value="TransferPromotion"></asp:MenuItem>
+                            <asp:MenuItem NavigateUrl="~/redesig_proposals.aspx" Text="Redesignate" 
+                                Value="Redesignate"></asp:MenuItem>
+                            <asp:MenuItem NavigateUrl="~/retirement_proposals.aspx" Text="Retirements" 
+                                Value="Retirements"></asp:MenuItem>
+                        </asp:MenuItem>
+                        <asp:MenuItem Text="Reports" Value="Reports">
+                            <asp:MenuItem NavigateUrl="~/frmreports.aspx" Text="Combined Report" 
+                                Value="Combined Report"></asp:MenuItem>
+                        </asp:MenuItem>
+                        <asp:MenuItem NavigateUrl="~/frmfindemp.aspx" Text="Find Employee" 
+                            Value="Find Employee"></asp:MenuItem>
+                        <asp:MenuItem NavigateUrl="~/Login.aspx" Text="Logout" 
+                            Value="Find Employee"></asp:MenuItem>
+                    </Items>
+                </asp:Menu>
+            </div>
+        </div>
+        <div class="main">
+            <asp:ContentPlaceHolder ID="MainContent" runat="server"> 
+            </asp:ContentPlaceHolder> 
+        </div>
+     </form>
+</body>
+</html>

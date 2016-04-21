@@ -1,0 +1,23 @@
+﻿.watermarked
+{
+    border:1px solid #BEBEBE;
+    background-color:#F0F8FF;
+    color:red;
+    font-style:italic;
+}
+.watermark
+{
+    border:1px solid #BEBEBE;
+    background-color:#F0F8FF;
+    color:red;
+}
+.ui-autocomplete  
+{
+    height: 200px; 
+    overflow-y: scroll; 
+    overflow-x: hidden;
+}
+.hide
+{
+    display: none;
+}
