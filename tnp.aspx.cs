@@ -14,7 +14,7 @@ using System.Text;
 
 public partial class frmproposal : System.Web.UI.Page
 {
-    int prono;
+    int PRONO;
     private enum rowTypes
     {
         NORMAL,
@@ -36,7 +36,7 @@ public partial class frmproposal : System.Web.UI.Page
               "pshr.get_post(cloccode) as \"Proposed Location\"," +
               "pshr.get_desg(cdesgcode) as \"Proposed Designation\"," +
               "disp_right as Right_Display, " +
-              "Remarks,newempid, prvcomment from cadre.propcadrmap where status = 'P' and propno =" + prono +
+              "Remarks,newempid, prvcomment from cadre.propcadrmap where status = 'P' and propno =" + PRONO +
               " union all " +
               "select Sno,decode(status,'T','Transfer','P','Promotion') as Action," +
               "pshr.get_fullname(empid) as Name,EMPID, " +
@@ -47,7 +47,7 @@ public partial class frmproposal : System.Web.UI.Page
               "cadre.get_org_plants(cloccode) as \"Proposed Location\"," +
               "pshr.get_desg(cdesgcode) as \"Proposed Designation\"," +
               "disp_right as Right_Display, " +
-              "Remarks,newempid,prvcomment from cadre.propcadrmap where status = 'T' and propno =" + prono +
+              "Remarks,newempid,prvcomment from cadre.propcadrmap where status = 'T' and propno =" + PRONO +
               ") a order by a.sno";
 
         ds = OraDBConnection.GetData(sql);
@@ -64,7 +64,7 @@ public partial class frmproposal : System.Web.UI.Page
         //    "empid in (select empid from cadre.propcadrmap where status in ('T','P') and proposed_rowno is null and propno={0})",prono);
 
         string sql = string.Format("select empid, pshr.get_fullname(empid) as name from pshr.empperso em where " +
-            "empid in (select empid from cadre.propcadrmap where status in ('T','P') and proposed_rowno is null and propno={0})", prono);
+            "empid in (select empid from cadre.propcadrmap where status in ('T','P') and proposed_rowno is null and propno={0})", PRONO);
 
         System.Data.DataSet ds = OraDBConnection.GetData(sql);
         drpOfficer.Items.Clear();
@@ -433,7 +433,7 @@ public partial class frmproposal : System.Web.UI.Page
     {
         string oonum = txtOoNum.Text;
         string oodate = txtOoDate.Text;
-        string propno = this.prono.ToString();
+        string propno = this.PRONO.ToString();
 
         string empid, eventcode = "0", cdesgcode, cloccode, rowno, proposed_rowno;
         string pcloccode, sancdesg, sancindx, eventhistoryid;
@@ -575,14 +575,14 @@ public partial class frmproposal : System.Web.UI.Page
         int[] retd_events = new int[]{11,12,13,14,15,16,89};
 
         //check if any outstanding entry is pending
-        string out_count = OraDBConnection.GetScalar("select count(*) from cadre.propcadrmap where status in ('T','P') and proposed_rowno is null and propno="+prono);
+        string out_count = OraDBConnection.GetScalar("select count(*) from cadre.propcadrmap where status in ('T','P') and proposed_rowno is null and propno="+PRONO);
         if (out_count != "0")
         {
             Utils.ShowMessageBox(this, "Outstanding entries are pending.");
             return false;
         }
 
-        ds = OraDBConnection.GetData("select * from cadre.propcadrmap where propno=" + this.prono.ToString());
+        ds = OraDBConnection.GetData("select * from cadre.propcadrmap where propno=" + this.PRONO.ToString());
         if (ds.Tables[0].Rows.Count < 1)
         {
             Utils.ShowMessageBox(this, "Nothing to save.");
@@ -733,7 +733,7 @@ public partial class frmproposal : System.Web.UI.Page
         string oodate = "-";
         string endono = "-";
         string notes = "1";
-        string propno = this.prono.ToString();
+        string propno = this.PRONO.ToString();
 
         if (save)
         {
@@ -805,7 +805,7 @@ public partial class frmproposal : System.Web.UI.Page
         string oonum = "-";
         string oodate = "-";
         string notes = "1";
-        string propno = this.prono.ToString();
+        string propno = this.PRONO.ToString();
         string approver = ddApprover.SelectedValue;
 
         if (save)
@@ -875,7 +875,7 @@ public partial class frmproposal : System.Web.UI.Page
         string oonum = "-";
         string oodate = "-";
         string notes = "1";
-        string propno = this.prono.ToString();
+        string propno = this.PRONO.ToString();
         string approver = ddApprover.SelectedValue;
 
         if (save)
@@ -1093,7 +1093,7 @@ public partial class frmproposal : System.Web.UI.Page
             Response.Redirect("Login.aspx");
             return;
         }
-        prono = int.Parse(str_propno);
+        PRONO = int.Parse(str_propno);
         lblProposalName.Text = Session["proposalname"].ToString() + " (" + Session["proposaldate"].ToString() + ")";
         BypassLogin();
         if (!IsPostBack)
@@ -1123,7 +1123,7 @@ public partial class frmproposal : System.Web.UI.Page
             //txtName.Visible = false;
             //txtLoc.Visible = false;
 
-            string sqlPropLine = "select proplinemode, proplinetext, LASTLINEMODE, LASTLINETEXT from cadre.tp_proposals where pno = " + prono;
+            string sqlPropLine = "select proplinemode, proplinetext, LASTLINEMODE, LASTLINETEXT from cadre.tp_proposals where pno = " + PRONO;
             DataRow drow = OraDBConnection.GetData(sqlPropLine).Tables[0].Rows[0];
             if (drow["proplinemode"].ToString() == "A")
             {
@@ -1193,7 +1193,7 @@ public partial class frmproposal : System.Web.UI.Page
         string prop_row = drpLocs.SelectedValue;
         string remarks = txtRemarks.Text;
         string sno = string.Empty;
-        int propno = prono;
+        int propno = PRONO;
         bool in_propcadrmap;
         string lastEvent = string.Empty;
         string prvComment = string.Empty;
@@ -1237,6 +1237,14 @@ public partial class frmproposal : System.Web.UI.Page
             //if empid is already of gazetted officer, i.e. starts with 10
             //then New Empid is irrelevent
             newEmpid = "";
+        }
+
+        //check if proposed row is already assigned to someone in this proposal
+        sql = string.Format("select count(*) from cadre.propcadrmap where proposed_rowno='{0}' and propno={1}",prop_row, PRONO);
+        if(OraDBConnection.GetScalar(sql) != "0")
+        {
+            Utils.ShowMessageBox(this, "The selected proposed row already exists in this proposal");
+            return;
         }
 
         //if its not an event
@@ -1414,7 +1422,7 @@ public partial class frmproposal : System.Web.UI.Page
         //if we are here that means Save() returned no errors
         //so mark the proposal as saved
         string sql = string.Format("update cadre.tp_proposals set status='S',oonum='{0}',oodate='{1}' where pno={2}", 
-            txtOoNum.Text, txtOoDate.Text, prono);
+            txtOoNum.Text, txtOoDate.Text, PRONO);
         if (OraDBConnection.ExecQry(sql) == false)
         {
             Utils.ShowMessageBox(this, "Error marking proposal as saved");
@@ -1538,13 +1546,13 @@ public partial class frmproposal : System.Web.UI.Page
         if (ddPropLineMode.SelectedIndex == 1)
         {
             sql = string.Format("update cadre.tp_proposals set proplinemode = 'M', proplinetext = '{0}' where pno = '{1}'",
-                txtPropLine.Text, prono);
+                txtPropLine.Text, PRONO);
             OraDBConnection.ExecQry(sql);
         }
         if (ddPropLastLineMode.SelectedIndex == 1)
         {
             sql = string.Format("update cadre.tp_proposals set LASTLINEMODE = 'M', LASTLINETEXT = '{0}' where pno = '{1}'",
-                txtPropLastLine.Text, prono);
+                txtPropLastLine.Text, PRONO);
             OraDBConnection.ExecQry(sql);
         }
         Makeproreport();
@@ -1591,7 +1599,7 @@ public partial class frmproposal : System.Web.UI.Page
             "cdesgcode as newdesgcode, pshr.get_desg(cdesgcode) as newdesgtext," +
             "remarks, sno, status, newempid, prvcomment,disp_left, disp_right, i.photo2 as photo " +
             "from cadre.propcadrmap pm left outer join img_pshr.img i on i.empid = pm.empid "+
-            "where pm.empid = " + empid + " and propno = " + prono;
+            "where pm.empid = " + empid + " and propno = " + PRONO;
 
         drow = OraDBConnection.GetData(sql).Tables[0].Rows[0];
 
@@ -1640,7 +1648,7 @@ public partial class frmproposal : System.Web.UI.Page
         e.Cancel = true;
 
         empid = gvProposals.Rows[e.RowIndex].Cells[4].Text.ToString();
-        sql = string.Format("delete from cadre.propcadrmap where propno = {0} and empid = {1}", prono, empid);
+        sql = string.Format("delete from cadre.propcadrmap where propno = {0} and empid = {1}", PRONO, empid);
         OraDBConnection.ExecQry(sql);
         FillGrid();
     }
@@ -1746,9 +1754,9 @@ public partial class frmproposal : System.Web.UI.Page
                         "cadre.get_mapping_text_from_rowno(proposed_rowno) as new_mapping, " +
                         "remarks, pc.PRVCOMMENT as priv_comm " +
                         "from cadre.propcadrmap pc " +
-                        "where pc.PROPNO= " + prono + " " +
+                        "where pc.PROPNO= " + PRONO + " " +
                         "order by pc.sno";
-        Utils.DownloadXLS(sql, "prop_" + prono + ".xls", this);
+        Utils.DownloadXLS(sql, "prop_" + PRONO + ".xls", this);
     }
     protected void btnPDFProp_Click(object sender, EventArgs e)
     {
@@ -1756,13 +1764,13 @@ public partial class frmproposal : System.Web.UI.Page
         if (ddPropLineMode.SelectedIndex == 1)
         {
             sql = string.Format("update cadre.tp_proposals set proplinemode = 'M', proplinetext = '{0}' where pno = '{1}'",
-                txtPropLine.Text, prono);
+                txtPropLine.Text, PRONO);
             OraDBConnection.ExecQry(sql);
         }
         if (ddPropLastLineMode.SelectedIndex == 1)
         {
             sql = string.Format("update cadre.tp_proposals set LASTLINEMODE = 'M', LASTLINETEXT = '{0}' where pno = '{1}'",
-                txtPropLastLine.Text, prono);
+                txtPropLastLine.Text, PRONO);
             OraDBConnection.ExecQry(sql);
         }
         Makeproreport_pc();
