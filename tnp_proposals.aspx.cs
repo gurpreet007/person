@@ -297,9 +297,9 @@ public partial class frmproposalmenu : System.Web.UI.Page
         {
             //status: U-Unsaved, S-Saved
             //type: TP-Transfer/Promotion, RD-Redesignation
-            string sql = "insert into cadre.tp_proposals(pno,pname,pdate,status,proplinemode) values" +
+            string sql = "insert into cadre.tp_proposals(pno,pname,pdate,status,proplinemode, lastlinemode) values" +
                          "((select nvl(max(pno),0)+1 from cadre.tp_proposals)," +
-                         "'" + propname + "',sysdate,'U','A')";
+                         "'" + propname + "',sysdate,'U','A','N')";
 
             bool ret = false;
             try
