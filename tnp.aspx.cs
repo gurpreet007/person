@@ -817,6 +817,8 @@ public partial class frmproposal : System.Web.UI.Page
                     "'" + approver + "' as approver, " +
                     "'" + ddPropLineMode.SelectedValue + "' as proplinemode, " +
                     "'" + txtPropLine.Text + "' as proplinetext, " +
+                    "'" + ddPropLastLineMode.SelectedValue + "' as proplastlinemode, " +
+                    "'" + txtPropLastLine.Text + "' as proplastlinetext, " +
                     ddFSize.SelectedValue + " as fsize, " +
                     "(select count(*) from cadre.propcadrmap where propno = " + propno + ") TotCount, " +
                     "(select count(*) from cadre.propcadrmap where status = 'P' and propno = "+propno +") PCount, " +
@@ -885,6 +887,8 @@ public partial class frmproposal : System.Web.UI.Page
                     "'" + approver + "' as approver, " +
                     "'" + ddPropLineMode.SelectedValue + "' as proplinemode, " +
                     "'" + txtPropLine.Text + "' as proplinetext, " +
+                    "'" + ddPropLastLineMode.SelectedValue + "' as proplastlinemode, " +
+                    "'" + txtPropLastLine.Text + "' as proplastlinetext, " +
                     ddFSize.SelectedValue + " as fsize, "+
                     "(select count(*) from cadre.propcadrmap where propno = " + propno + ") TotCount, " +
                     "(select count(*) from cadre.propcadrmap where status = 'P' and propno = " + propno + ") PCount, " +
@@ -1119,7 +1123,7 @@ public partial class frmproposal : System.Web.UI.Page
             //txtName.Visible = false;
             //txtLoc.Visible = false;
 
-            string sqlPropLine = "select proplinemode, proplinetext from cadre.tp_proposals where pno = " + prono;
+            string sqlPropLine = "select proplinemode, proplinetext, LASTLINEMODE, LASTLINETEXT from cadre.tp_proposals where pno = " + prono;
             DataRow drow = OraDBConnection.GetData(sqlPropLine).Tables[0].Rows[0];
             if (drow["proplinemode"].ToString() == "A")
             {
@@ -1130,6 +1134,16 @@ public partial class frmproposal : System.Web.UI.Page
                 ddPropLineMode.SelectedIndex = 1;
                 txtPropLine.Text = drow["proplinetext"].ToString();
                 txtPropLine.Visible = true;
+            }
+            if (drow["LASTLINEMODE"].ToString() == "N")
+            {
+                ddPropLastLineMode.SelectedIndex = 0;
+            }
+            else
+            {
+                ddPropLastLineMode.SelectedIndex = 1;
+                txtPropLastLine.Text = drow["LASTLINETEXT"].ToString();
+                txtPropLastLine.Visible = true;
             }
         }
 
@@ -1527,6 +1541,12 @@ public partial class frmproposal : System.Web.UI.Page
                 txtPropLine.Text, prono);
             OraDBConnection.ExecQry(sql);
         }
+        if (ddPropLastLineMode.SelectedIndex == 1)
+        {
+            sql = string.Format("update cadre.tp_proposals set LASTLINEMODE = 'M', LASTLINETEXT = '{0}' where pno = '{1}'",
+                txtPropLastLine.Text, prono);
+            OraDBConnection.ExecQry(sql);
+        }
         Makeproreport();
     }
     protected void drpFilter_SelectedIndexChanged(object sender, EventArgs e)
@@ -1711,6 +1731,10 @@ public partial class frmproposal : System.Web.UI.Page
     {
         txtPropLine.Visible = ddPropLineMode.SelectedIndex == 1;
     }
+    protected void ddPropLastLineMode_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        txtPropLastLine.Visible = ddPropLastLineMode.SelectedIndex == 1;
+    }
     protected void btnXLSProp_Click(object sender, EventArgs e)
     {
         string sql = "select pc.sno, pc.empid, pshr.get_fullname(pc.empid),status, " +
@@ -1733,6 +1757,12 @@ public partial class frmproposal : System.Web.UI.Page
         {
             sql = string.Format("update cadre.tp_proposals set proplinemode = 'M', proplinetext = '{0}' where pno = '{1}'",
                 txtPropLine.Text, prono);
+            OraDBConnection.ExecQry(sql);
+        }
+        if (ddPropLastLineMode.SelectedIndex == 1)
+        {
+            sql = string.Format("update cadre.tp_proposals set LASTLINEMODE = 'M', LASTLINETEXT = '{0}' where pno = '{1}'",
+                txtPropLastLine.Text, prono);
             OraDBConnection.ExecQry(sql);
         }
         Makeproreport_pc();

@@ -106,6 +106,11 @@
                 <asp:ListItem Value="A">Auto 1st Line</asp:ListItem>
                 <asp:ListItem Value="M">Manual</asp:ListItem>
             </asp:DropDownList>
+            <asp:DropDownList ID="ddPropLastLineMode" runat="server" AutoPostBack="True"
+                onselectedindexchanged="ddPropLastLineMode_SelectedIndexChanged">
+                <asp:ListItem Value="A">No Last Line</asp:ListItem>
+                <asp:ListItem Value="M">Manual Last Line</asp:ListItem>
+            </asp:DropDownList>
             <asp:DropDownList ID="ddApprover" runat="server" style="margin-left: 0px" Width="80px">
                 <asp:ListItem Selected="True">CMD / PSPCL</asp:ListItem>
                 <asp:ListItem>Dir. Admin. / PSPCL</asp:ListItem>
@@ -131,7 +136,9 @@
             <asp:Button ID="btnPDFProp" runat="server" Text="PDF Pvt Comm" onclick="btnPDFProp_Click"/>
             <asp:Button ID="btnXLSProp" runat="server" Text="XLS" onclick="btnXLSProp_Click"/>
             <br />
-            <asp:TextBox ID="txtPropLine" runat="server" TextMode="MultiLine" Visible=false></asp:TextBox>
+            <asp:TextBox ID="txtPropLine" runat="server" TextMode="MultiLine" placeholder="First Line" Visible=false></asp:TextBox>
+            <br />
+            <asp:TextBox ID="txtPropLastLine" runat="server" TextMode="MultiLine" placeholder="Last Line" Visible=false></asp:TextBox>
         </div>
         <div id="prev_controls">
             <strong>Preview Report: </strong>
