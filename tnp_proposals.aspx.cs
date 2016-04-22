@@ -73,7 +73,7 @@ public partial class frmproposalmenu : System.Web.UI.Page
     private bool isValidDS(DataSet ds)
     {
         //check column count - should be 25 columns (8+17)
-        if (ds.Tables.Count != 1 || ds.Tables[0].Columns.Count != 25)
+        if (ds.Tables.Count != 1 || ds.Tables[0].Columns.Count != 27)
         {
             return false;
         }
@@ -85,24 +85,26 @@ public partial class frmproposalmenu : System.Web.UI.Page
             ds.Tables[0].Columns[4].Caption != "OODATE" || 
             ds.Tables[0].Columns[5].Caption != "STATUS" ||
             ds.Tables[0].Columns[6].Caption != "PROPLINEMODE" || 
-            ds.Tables[0].Columns[7].Caption != "PROPLINETEXT" || 
-            ds.Tables[0].Columns[8].Caption != "EMPID" || 
-            ds.Tables[0].Columns[9].Caption != "ROWNO" || 
-            ds.Tables[0].Columns[10].Caption != "STATUS0" || 
-            ds.Tables[0].Columns[11].Caption != "PROPOSED_ROWNO" || 
-            ds.Tables[0].Columns[12].Caption != "CLOCCODE" || 
-            ds.Tables[0].Columns[13].Caption != "CDESGCODE" || 
-            ds.Tables[0].Columns[14].Caption != "REMARKS" || 
-            ds.Tables[0].Columns[15].Caption != "SNO" ||
-            ds.Tables[0].Columns[16].Caption != "PROPNO" ||
-            ds.Tables[0].Columns[17].Caption != "NEWEMPID" ||
-            ds.Tables[0].Columns[18].Caption != "DISPLACEDID" ||
-            ds.Tables[0].Columns[19].Caption != "LAST_EVENT" ||
-            ds.Tables[0].Columns[20].Caption != "OLDDESGCODE" ||
-            ds.Tables[0].Columns[21].Caption != "OLDLOCCODE" ||
-            ds.Tables[0].Columns[22].Caption != "PRVCOMMENT" ||
-            ds.Tables[0].Columns[23].Caption != "DISP_LEFT" ||
-            ds.Tables[0].Columns[24].Caption != "DISP_RIGHT"
+            ds.Tables[0].Columns[7].Caption != "PROPLINETEXT" ||
+            ds.Tables[0].Columns[8].Caption != "LASTLINEMODE" ||
+            ds.Tables[0].Columns[9].Caption != "LASTLINETEXT" || 
+            ds.Tables[0].Columns[10].Caption != "EMPID" || 
+            ds.Tables[0].Columns[11].Caption != "ROWNO" || 
+            ds.Tables[0].Columns[12].Caption != "STATUS0" || 
+            ds.Tables[0].Columns[13].Caption != "PROPOSED_ROWNO" || 
+            ds.Tables[0].Columns[14].Caption != "CLOCCODE" || 
+            ds.Tables[0].Columns[15].Caption != "CDESGCODE" || 
+            ds.Tables[0].Columns[16].Caption != "REMARKS" || 
+            ds.Tables[0].Columns[17].Caption != "SNO" ||
+            ds.Tables[0].Columns[18].Caption != "PROPNO" ||
+            ds.Tables[0].Columns[19].Caption != "NEWEMPID" ||
+            ds.Tables[0].Columns[20].Caption != "DISPLACEDID" ||
+            ds.Tables[0].Columns[21].Caption != "LAST_EVENT" ||
+            ds.Tables[0].Columns[22].Caption != "OLDDESGCODE" ||
+            ds.Tables[0].Columns[23].Caption != "OLDLOCCODE" ||
+            ds.Tables[0].Columns[24].Caption != "PRVCOMMENT" ||
+            ds.Tables[0].Columns[25].Caption != "DISP_LEFT" ||
+            ds.Tables[0].Columns[26].Caption != "DISP_RIGHT"
            )
         {
             return false;
@@ -111,7 +113,7 @@ public partial class frmproposalmenu : System.Web.UI.Page
     }
     private bool DBInsert(DataSet ds)
     {
-        string pno, pname, pdate, oonum, oodate, status, proplinemode, proplinetext;
+        string pno, pname, pdate, oonum, oodate, status, proplinemode, proplinetext, lastlinemode, lastlinetext;
         string empid, rowno, status0, proposedrowno, cloccode, cdesgcode, remarks;
         string sno, propno, newempid, displacedid, last_event, olddesgcode, oldloccode; 
         string prvcomment, disp_left, disp_right;
@@ -130,7 +132,8 @@ public partial class frmproposalmenu : System.Web.UI.Page
             status = firstrow["STATUS"].ToString().Trim();
             proplinemode = firstrow["PROPLINEMODE"].ToString().Trim();
             proplinetext = (firstrow["PROPLINETEXT"].ToString().Trim() == "-1") ? null : firstrow["PROPLINETEXT"].ToString().Trim();   //can be -1
-
+            lastlinemode = firstrow["LASTLINEMODE"].ToString().Trim();
+            lastlinetext = (firstrow["LASTLINETEXT"].ToString().Trim() == "-1") ? null : firstrow["LASTLINETEXT"].ToString().Trim();   //can be -1
             //check if proposal exists on server
             sql = "select count(*) as cnt from cadre.tp_proposals where pno = " + pno;
             if (OraDBConnection.GetScalar(sql) != "0")
@@ -139,8 +142,8 @@ public partial class frmproposalmenu : System.Web.UI.Page
                 return false;
             }
             //insert the proposal info in cadre.tp_proposals
-            sql = string.Format("insert into cadre.tp_proposals values ({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}')",
-                    pno, pname, pdate, oonum, oodate, status, proplinemode, proplinetext);
+            sql = string.Format("insert into cadre.tp_proposals values ({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}')",
+                    pno, pname, pdate, oonum, oodate, status, proplinemode, proplinetext, lastlinemode, lastlinetext);
             ret = OraDBConnection.ExecQry(sql);
             if (ret == false)
             {
@@ -225,6 +228,8 @@ public partial class frmproposalmenu : System.Web.UI.Page
                           TO_CHAR(NVL(pr.oodate,'01-Jan-2001'),'dd-Mon-yyyy') AS oodate,
                           pr.status,  pr.proplinemode,  
                           NVL(pr.proplinetext,'-1') as proplinetext,
+                          pr.lastlinemode,
+                          NVL(pr.lastlinetext,'-1') as lastlinetext,
                           pcm.empid,  
                           NVL(pcm.rowno,-1) as rowno,  
                           NVL(pcm.status,'-1') as status0,
