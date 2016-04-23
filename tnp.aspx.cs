@@ -1007,6 +1007,11 @@ public partial class frmproposal : System.Web.UI.Page
             "where nvl(status,'null') <> 'JRA' and empid = {0} order by oodate desc", empid);
 
         DataSet ds = OraDBConnection.GetData(sql);
+
+        if (ds.Tables[0].Rows.Count == 0)
+        {
+            return true;
+        }
         string status = ds.Tables[0].Rows[0]["status"].ToString();
         string oodate = ds.Tables[0].Rows[0]["oodate"].ToString();
         string oonum = ds.Tables[0].Rows[0]["oonum"].ToString();
@@ -1419,7 +1424,7 @@ public partial class frmproposal : System.Web.UI.Page
         if (!string.IsNullOrEmpty(outempid))
         {
             bool already_in_propcadrmap;
-                
+
             //check if this outstanding entry is already entered into propcadrmap
             //(this could happen if empid which is going to be outstanding in this case have already been selected
             //and changed its posting in a previous case hence putting the record already in propcadrmap)
@@ -1427,7 +1432,7 @@ public partial class frmproposal : System.Web.UI.Page
             already_in_propcadrmap = OraDBConnection.GetScalar(sql) == "1";
             if (!already_in_propcadrmap)
             {
-                sql = string.Format("insert into cadre.propcadrmap(empid,rowno,propno,status) values({0},{1},{2},'{3}')", 
+                sql = string.Format("insert into cadre.propcadrmap(empid,rowno,propno,status) values({0},{1},{2},'{3}')",
                     outempid, prop_row, propno, status);
                 if (OraDBConnection.ExecQry(sql) == false)
                 {
@@ -1543,9 +1548,22 @@ public partial class frmproposal : System.Web.UI.Page
         }
         else
         {
-            sql = "select pshr.get_org(loccode) as locname, loccode, desgcode,pshr.get_desg(desgcode) as desgname from cadre.cadr where rowno = " + rowno;
+            //sql = "select pshr.get_org(loccode) as locname, loccode, desgcode,pshr.get_desg(desgcode) as desgname from cadre.cadr where rowno = " + rowno;
+            sql = "select cm.empid, pshr.get_org(loccode) as locname, loccode, desgcode,pshr.get_desg(desgcode) as desgname "+
+                "from cadre.cadr c left outer join cadre.cadrmap cm on c.rowno=cm.rowno where c.rowno = " + rowno;
             System.Data.DataSet ds = OraDBConnection.GetData(sql);
             txtCLoc.Text = ds.Tables[0].Rows[0]["locname"] + "-" + ds.Tables[0].Rows[0]["loccode"];
+            if ( ds.Tables[0].Rows[0]["empid"] == DBNull.Value )
+            {
+                if (txtRemarks.Text == "")
+                {
+                    txtRemarks.Text = "i) Against a vacant post";
+                }
+                else
+                {
+                    txtRemarks.Text += Environment.NewLine + "ii) Against a vacant post";
+                }
+            }
         }
 
         if (hidStatus.Value == "T")
