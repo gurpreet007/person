@@ -777,7 +777,6 @@ public partial class frmproposal : System.Web.UI.Page
                     " AND m.cloccode is not null" +
                     " order by sno";
 
-        OraDBConnection oraCn = new OraDBConnection();
         System.Data.DataSet ds = OraDBConnection.GetData(sql);
         string pdfPath;
         if (save)
@@ -850,7 +849,6 @@ public partial class frmproposal : System.Web.UI.Page
                     " AND m.cloccode is not null" +
                     " order by sno";
 
-        OraDBConnection oraCn = new OraDBConnection();
         System.Data.DataSet ds = OraDBConnection.GetData(sql);
         string pdfPath;
         if (save)
@@ -920,7 +918,6 @@ public partial class frmproposal : System.Web.UI.Page
                     " AND m.cloccode is not null" +
                     " order by sno";
 
-        OraDBConnection oraCn = new OraDBConnection();
         System.Data.DataSet ds = OraDBConnection.GetData(sql);
         string pdfPath;
         if (save)
@@ -1626,12 +1623,14 @@ public partial class frmproposal : System.Web.UI.Page
                 txtPropLine.Text, PRONO);
             OraDBConnection.ExecQry(sql);
         }
+        
         if (ddPropLastLineMode.SelectedIndex == 1)
         {
             sql = string.Format("update cadre.tp_proposals set LASTLINEMODE = 'M', LASTLINETEXT = '{0}' where pno = '{1}'",
                 txtPropLastLine.Text, PRONO);
             OraDBConnection.ExecQry(sql);
         }
+       
         Makeproreport();
     }
     protected void drpFilter_SelectedIndexChanged(object sender, EventArgs e)
@@ -1828,10 +1827,18 @@ public partial class frmproposal : System.Web.UI.Page
     protected void ddPropLineMode_SelectedIndexChanged(object sender, EventArgs e)
     {
         txtPropLine.Visible = ddPropLineMode.SelectedIndex == 1;
+        if (ddPropLastLineMode.SelectedIndex == 0)
+        {
+            OraDBConnection.ExecQry(string.Format("update cadre.tp_proposals set proplinemode = 'A' where pno = '{0}'",PRONO));
+        }
     }
     protected void ddPropLastLineMode_SelectedIndexChanged(object sender, EventArgs e)
     {
         txtPropLastLine.Visible = ddPropLastLineMode.SelectedIndex == 1;
+        if (ddPropLastLineMode.SelectedIndex == 0)
+        {
+            OraDBConnection.ExecQry(string.Format("update cadre.tp_proposals set LASTLINEMODE = 'N' where pno = '{0}'",PRONO));
+        }
     }
     protected void btnXLSProp_Click(object sender, EventArgs e)
     {
