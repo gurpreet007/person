@@ -18,6 +18,7 @@
         input[type=text].divsave {width:80px;}
         input[type=text].divpropose {width:80%;}
         textarea {width:80%;}
+        .msg {color:Red}
     </style>
 </asp:Content>
 
@@ -32,12 +33,12 @@
                 <asp:TextBox ID="txtEmpid" runat="server"></asp:TextBox>
                 <asp:Button ID="btnSelNewID" runat="server" Text="Show Info" onclick="btnSelNewID_Click"/>
                 <br />
-                <asp:Label ID="lblMsgNew" runat="server" Text=""></asp:Label>
+                <asp:Label ID="lblMsgNew" class="msg" runat="server" Text=""></asp:Label>
                 <br />
                 <asp:DropDownList ID="drpOfficer" runat="server"> </asp:DropDownList>
                 <asp:Button ID="btnSelOutID" runat="server" Text="Show Info" onclick="btnSelOutID_Click"/>
                 <br />
-                <asp:Label ID="lblMsgOut" runat="server" Text=""></asp:Label>
+                <asp:Label ID="lblMsgOut" class="msg" runat="server" Text=""></asp:Label>
             </p>
             <strong>Name: </strong>
             <asp:Label ID="lblInfoName" runat="server" Text=""></asp:Label>

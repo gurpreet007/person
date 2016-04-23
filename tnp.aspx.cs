@@ -677,6 +677,14 @@ public partial class frmproposal : System.Web.UI.Page
                 }
             }
 
+            //check if this employee is already under transfer
+            sql = string.Format("select count(*) from cadre.chargereport where status is null and empid = {0}", empid);
+            if (OraDBConnection.GetScalar(sql) != "0")
+            {
+                //remove old T & P entries from chargereport table cancelling old orders
+                sql = "delete from cadre.chargereport where status is null and empid = " + empid;
+                OraDBConnection.ExecQry(sql);
+            }
 
             sql = string.Empty;
             if (rowType == rowTypes.LEAVE_RET_EVENT)
@@ -975,17 +983,68 @@ public partial class frmproposal : System.Web.UI.Page
         ClearRightFields();
         return true;
     }
-    private void ClearInfo()
+    private void ClearInfo(bool clearMsgLbls = true)
     {
         lblInfoDesg.Text = string.Empty;
         lblInfoName.Text = string.Empty;
         lblInfoPCLoc.Text = string.Empty;
         lblInfoWLoc.Text = string.Empty;
-        lblMsgNew.Text = string.Empty;
-        lblMsgOut.Text = string.Empty;
         imgEmpPhoto.ImageUrl = null;
+        hidEmpID.Value = string.Empty;
+        hidWDesgCode.Value = string.Empty;
+        hidWLoccode.Value = string.Empty;
+        hidPCRowNo.Value = string.Empty;
+        if (clearMsgLbls)
+        {
+            lblMsgNew.Text = string.Empty;
+            lblMsgOut.Text = string.Empty;
+        }
     }
+    private bool CheckForUnderTransfer(string empid, ref Label lblMsg)
+    {
+        //check if this employee is already under transfer with status is null i.e. neither relieving or joining in progress
+        string sql = string.Format("select status, oonum, to_char(oodate,'dd-mm-yyyy') as oodate from cadre.chargereport " +
+            "where nvl(status,'null') <> 'JRA' and empid = {0} order by oodate desc", empid);
 
+        DataSet ds = OraDBConnection.GetData(sql);
+        string status = ds.Tables[0].Rows[0]["status"].ToString();
+        string oodate = ds.Tables[0].Rows[0]["oodate"].ToString();
+        string oonum = ds.Tables[0].Rows[0]["oonum"].ToString();
+
+        if (ds.Tables[0].Rows.Count > 1)
+        {
+            lblMsg.Text = "Multiple under transfer rows found. Aborting";
+            return false;
+        }
+        //if status is null then under transfer procedure is not yet started.
+        //can safely cancel the last order
+        else if (string.IsNullOrEmpty(status))
+        {
+            lblMsg.Text = String.Format("Already u/t. O/o No. {0} Dt. {1}", oonum, oodate);
+            return true;
+        }
+        //if relieving or joining procedure is already started then cannot safely cancel the prev. order, hence abort
+        else
+        {
+            string statusDesc = string.Empty;
+            switch (status)
+            {
+                case "RRS":
+                    statusDesc = "Relieving Req. Submitted";
+                    break;
+                case "RRA":
+                    statusDesc = "Relieving Req. Accepted";
+                    break;
+                case "JRS":
+                    statusDesc = "Joining Req. Submitted";
+                    break;
+            }
+
+            lblMsg.Text = String.Format("Already u/t. O/o No. {0} Dt. {1}. Status {2}. Aborting",
+                ds.Tables[0].Rows[0]["oonum"], ds.Tables[0].Rows[0]["oodate"], statusDesc);
+            return false;
+        }
+    }
     [System.Web.Services.WebMethodAttribute()]
     [System.Web.Script.Services.ScriptMethodAttribute()]
     public static string[] GetDesgs(string prefixText, int count, string contextKey)
@@ -1666,6 +1725,13 @@ public partial class frmproposal : System.Web.UI.Page
         if (ShowInfo(empid) == false)
         {
             lblMsgNew.Text = "No such empid";
+            return;
+        }
+
+        if (CheckForUnderTransfer(empid, ref lblMsgNew) == false)
+        {
+            ClearInfo(false);
+            return;
         }
     }
     protected void btnSelOutID_Click(object sender, EventArgs e)
@@ -1678,6 +1744,12 @@ public partial class frmproposal : System.Web.UI.Page
         string empid = drpOfficer.SelectedValue;
         ClearInfo();
         ShowInfo(empid);
+
+        if (CheckForUnderTransfer(empid, ref lblMsgOut) == false)
+        {
+            ClearInfo(false);
+            return;
+        }
     }
     protected void btnTransfer_Click(object sender, EventArgs e)
     {
