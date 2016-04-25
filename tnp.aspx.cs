@@ -1301,7 +1301,7 @@ public partial class frmproposal : System.Web.UI.Page
         }
 
         //check if proposed row is already assigned to someone in this proposal
-        sql = string.Format("select count(*) from cadre.propcadrmap where proposed_rowno='{0}' and propno={1}",prop_row, PRONO);
+        sql = string.Format("select count(*) from cadre.propcadrmap where proposed_rowno='{0}' and propno={1} and empid <> '{2}'",prop_row, PRONO, empid);
         if(OraDBConnection.GetScalar(sql) != "0")
         {
             Utils.ShowMessageBox(this, "The selected proposed row already exists in this proposal");
