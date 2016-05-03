@@ -561,6 +561,97 @@ public partial class frmproposal : System.Web.UI.Page
         }
         return true;
     }
+    private void ChangeTables(string empid)
+    {
+        string sql;
+        string oonum, postrel, postjoin, eventcode, loccode, desgcode;
+        string jloccode, jdesgcode, jindx;
+        DateTime odate;
+
+        System.Data.DataSet ds = new System.Data.DataSet();
+        System.Data.DataRow drow;
+
+        oonum = txtOoNum.Text;
+        //get values
+        sql = string.Format("select * from cadre.chargereport where oonum = '{0}' and empid = {1} order by oodate desc", oonum, empid);
+        ds = OraDBConnection.GetData(sql);
+
+        if (ds.Tables[0].Rows.Count != 1)
+        {
+            //lMsg0.Text = "No Pending Row";
+            return;
+        }
+        drow = ds.Tables[0].Rows[0];
+
+        
+        //check and get o/o date
+        if (!Convert.IsDBNull(drow["oodate"].ToString()))
+        {
+            odate = (DateTime)drow["oodate"];
+        }
+        else
+        {
+            //lblMsg.Text = "Invalid O/o Date";
+            return;
+        }
+        
+        postrel = drow["postrel"].ToString();
+        postjoin = drow["postjoin"].ToString();
+        eventcode = drow["eventcode"].ToString();
+        loccode = drow["loccode"].ToString();
+        desgcode = drow["desgcode"].ToString();
+
+        ds.Clear();
+
+        //postjoin is empty it means we are dealing with a special location
+        if (string.IsNullOrEmpty(postjoin))
+        {
+            jloccode = string.Empty;
+            jdesgcode = string.Empty;
+            jindx = string.Empty;
+
+            //delete entry from cadrmap
+            sql = "delete from cadre.cadrmap where empid = " + empid;
+            OraDBConnection.ExecQry(sql);
+        }
+        else
+        {
+            //get the trifecta from newrowno
+            sql = "select loccode, desgcode, indx from cadre.cadr where rowno =" + postjoin;
+            ds = OraDBConnection.GetData(sql);
+
+            if (ds.Tables[0].Rows.Count != 1)
+            {
+                //lMsg0.Text = "Unable to get join row in cadre";
+                return;
+            }
+            drow = ds.Tables[0].Rows[0];
+            jloccode = drow["loccode"].ToString();
+            jdesgcode = drow["desgcode"].ToString();
+            jindx = drow["indx"].ToString();
+
+            //update cadrmap
+            sql = "delete from cadre.cadrmap where empid = " + empid + " or rowno = " + postjoin;
+            OraDBConnection.ExecQry(sql);
+            sql = string.Format("insert into cadre.cadrmap(empid,rowno) values ({0},{1})", empid, postjoin);
+            OraDBConnection.ExecQry(sql);
+        }
+
+        //update empperso
+        sql = string.Format("update pshr.empperso set cloccode = {0}, cdesgcode = {1} where empid = {2}",
+            loccode, desgcode, empid);
+        OraDBConnection.ExecQry(sql);
+
+        //insert new row in emphistory, keeping fromdate and todate empty
+        sql = string.Format("insert into pshr.emphistory(empid,eventcode,desgcode,loccode,rowno, " +
+                    "eventhistoryid, pcloccode,sancdesg,sancindx,oonum,odate,status) values " +
+                    "({0},{1},{2},{3},(select nvl(max(rowno),0)+1 from pshr.emphistory where empid={0}), " +
+                    "(select max(eventhistoryid)+1 from pshr.emphistory),'{4}','{5}','{6}','{7}', " +
+                    "to_date('{8}','DD-MON-YYYY hh:mi:ss AM'),1)",
+                    empid, eventcode, desgcode, loccode, jloccode, jdesgcode, jindx, oonum,
+                    odate.ToString("dd-MMM-yyyy hh:mm:ss tt"));
+        OraDBConnection.ExecQry(sql);
+    }
     private bool Save()
     {
         string empid, eventcode, cdesgcode, cloccode, proposed_rowno,oldrowno, newempid;
@@ -575,13 +666,15 @@ public partial class frmproposal : System.Web.UI.Page
         int[] retd_events = new int[]{11,12,13,14,15,16,89};
 
         //check if any outstanding entry is pending
-        string out_count = OraDBConnection.GetScalar("select count(*) from cadre.propcadrmap where status in ('T','P') and proposed_rowno is null and propno="+PRONO);
+        string out_count = OraDBConnection.GetScalar("select count(*) from cadre.propcadrmap where "+
+            "status in ('T','P') and proposed_rowno is null and propno="+PRONO);
         if (out_count != "0")
         {
             Utils.ShowMessageBox(this, "Outstanding entries are pending.");
             return false;
         }
 
+        
         ds = OraDBConnection.GetData("select * from cadre.propcadrmap where propno=" + this.PRONO.ToString());
         if (ds.Tables[0].Rows.Count < 1)
         {
@@ -678,13 +771,13 @@ public partial class frmproposal : System.Web.UI.Page
             }
 
             //check if this employee is already under transfer
-            sql = string.Format("select count(*) from cadre.chargereport where status is null and empid = {0}", empid);
-            if (OraDBConnection.GetScalar(sql) != "0")
-            {
-                //remove old T & P entries from chargereport table cancelling old orders
-                sql = "delete from cadre.chargereport where status is null and empid = " + empid;
-                OraDBConnection.ExecQry(sql);
-            }
+            //sql = string.Format("select count(*) from cadre.chargereport where status is null and empid = {0}", empid);
+            //if (OraDBConnection.GetScalar(sql) != "0")
+            //{
+            //    //remove old T & P entries from chargereport table cancelling old orders
+            //    sql = "delete from cadre.chargereport where status is null and empid = " + empid;
+            //    OraDBConnection.ExecQry(sql);
+            //}
 
             sql = string.Empty;
             if (rowType == rowTypes.LEAVE_RET_EVENT)
@@ -732,6 +825,10 @@ public partial class frmproposal : System.Web.UI.Page
                 Utils.ShowMessageBox(this, string.Format("Unable to add entry for empid " + empid));
                 return false;
             }
+
+            //change the cadrmap, empperso and emphistory tables for this empid
+            //keeping fromdate and todate blank
+            ChangeTables(empid);
         }
         return true;
     }
@@ -1321,7 +1418,7 @@ public partial class frmproposal : System.Web.UI.Page
         }
        
         //get last event from emphistory
-        //will be handy to in case of events like Suspension, Leave etc
+        //will be handy in case of events like Suspension, Leave etc
         sql = string.Format("select eventcode from emphistory where empid = {0} "+
             "and rowno = (select max(rowno) from emphistory where empid = {0})", empid);
         lastEvent = OraDBConnection.GetScalar(sql);
@@ -1455,6 +1552,8 @@ public partial class frmproposal : System.Web.UI.Page
     }
     protected void btnSave_Click(object sender, EventArgs e) 
     {
+        string sql;
+
         if (txtOoNum.Text.Length < 1)
         {
             Utils.ShowMessageBox(this, "Enter O/o Number");
@@ -1472,6 +1571,15 @@ public partial class frmproposal : System.Web.UI.Page
             return;
         }
 
+        //check if oonum is unique
+        sql = string.Format("select count(*) from cadre.tp_proposals where oonum = '{0}'", txtOoNum.Text);
+        if (OraDBConnection.GetScalar(sql) != "0")
+        {
+            Utils.ShowMessageBox(this, "This Office Order Number already exists");
+            return;
+        }
+
+
         //save the Proposal
         //actual modification of emphistory will happen here
         if (Save() == false)
@@ -1482,7 +1590,7 @@ public partial class frmproposal : System.Web.UI.Page
         
         //if we are here that means Save() returned no errors
         //so mark the proposal as saved
-        string sql = string.Format("update cadre.tp_proposals set status='S',oonum='{0}',oodate='{1}' where pno={2}", 
+        sql = string.Format("update cadre.tp_proposals set status='S',oonum='{0}',oodate='{1}' where pno={2}", 
             txtOoNum.Text, txtOoDate.Text, PRONO);
         if (OraDBConnection.ExecQry(sql) == false)
         {
@@ -1745,11 +1853,11 @@ public partial class frmproposal : System.Web.UI.Page
             return;
         }
 
-        if (CheckForUnderTransfer(empid, ref lblMsgNew) == false)
-        {
-            ClearInfo(false);
-            return;
-        }
+        //if (CheckForUnderTransfer(empid, ref lblMsgNew) == false)
+        //{
+        //    ClearInfo(false);
+        //    return;
+        //}
     }
     protected void btnSelOutID_Click(object sender, EventArgs e)
     {
@@ -1762,11 +1870,11 @@ public partial class frmproposal : System.Web.UI.Page
         ClearInfo();
         ShowInfo(empid);
 
-        if (CheckForUnderTransfer(empid, ref lblMsgOut) == false)
-        {
-            ClearInfo(false);
-            return;
-        }
+        //if (CheckForUnderTransfer(empid, ref lblMsgOut) == false)
+        //{
+        //    ClearInfo(false);
+        //    return;
+        //}
     }
     protected void btnTransfer_Click(object sender, EventArgs e)
     {
