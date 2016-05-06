@@ -1576,10 +1576,10 @@ public partial class frmproposal : System.Web.UI.Page
         }
 
         //check if oonum is unique
-        sql = string.Format("select count(*) from cadre.tp_proposals where oonum = '{0}'", txtOoNum.Text);
+        sql = string.Format("select count(*) from cadre.tp_proposals where oonum = '{0}' and pno != '{1}'", txtOoNum.Text, PRONO);
         if (OraDBConnection.GetScalar(sql) != "0")
         {
-            Utils.ShowMessageBox(this, "This Office Order Number already exists");
+            Utils.ShowMessageBox(this, "This Office Order Number already exists for a different proposal");
             return;
         }
 
