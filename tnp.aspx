@@ -164,7 +164,10 @@
             <asp:TextBox ID="txtOoNum" runat="server" CssClass="divsave unwatermarked"></asp:TextBox>
             <asp:TextBox ID="txtOoDate" runat="server" CssClass="divsave unwatermarked"></asp:TextBox>
             <asp:TextBox ID="txtEndorsNo" runat="server" CssClass="divsave unwatermarked"></asp:TextBox>
-            <asp:Button ID="btnSave" runat="server" Text="Save and Generate O/o" onclick="btnSave_Click"/>
+            <asp:Button ID="btnGenOO" runat="server" Text="Generate O/o" 
+                onclick="btnGenOO_Click"/>
+            <asp:Button ID="btnSave" runat="server" Text="Save Order" 
+                onclick="btnSave_Click"/>
         </div>
         <div id="hidd_fields">
             <asp:HiddenField ID="hidEmpID" runat="server" />

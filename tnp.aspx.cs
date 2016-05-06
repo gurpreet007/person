@@ -1303,10 +1303,14 @@ public partial class frmproposal : System.Web.UI.Page
                 txtPropLastLine.Text = drow["LASTLINETEXT"].ToString();
                 txtPropLastLine.Visible = true;
             }
+
+            //check if already saved
+            string sql = "select status from cadre.tp_proposals where pno = " + PRONO;
+            btnSave.Enabled = !(OraDBConnection.GetScalar(sql) == "S");
         }
 
-            FillGrid();
-            FillOutstandings();
+        FillGrid();
+        FillOutstandings();
     }
     protected void txtLocFilter_TextChanged(object sender, EventArgs e)
     {
@@ -1550,9 +1554,10 @@ public partial class frmproposal : System.Web.UI.Page
         FillOutstandings();
         return;
     }
-    protected void btnSave_Click(object sender, EventArgs e) 
+    protected void btnGenOO_Click(object sender, EventArgs e) 
     {
         string sql;
+        DateTime checkdate;
 
         if (txtOoNum.Text.Length < 1)
         {
@@ -1564,7 +1569,6 @@ public partial class frmproposal : System.Web.UI.Page
             Utils.ShowMessageBox(this, "Enter Endorsement Number");
             return;
         }
-        DateTime checkdate;
         if (DateTime.TryParse(txtOoDate.Text, out checkdate) == false)
         {
             Utils.ShowMessageBox(this, "Enter a valid date");
@@ -1579,24 +1583,6 @@ public partial class frmproposal : System.Web.UI.Page
             return;
         }
 
-
-        //save the Proposal
-        //actual modification of emphistory will happen here
-        if (Save() == false)
-        {
-            Utils.ShowMessageBox(this, "Error Saving Proposal");
-            return;
-        }
-        
-        //if we are here that means Save() returned no errors
-        //so mark the proposal as saved
-        sql = string.Format("update cadre.tp_proposals set status='S',oonum='{0}',oodate='{1}' where pno={2}", 
-            txtOoNum.Text, txtOoDate.Text, PRONO);
-        if (OraDBConnection.ExecQry(sql) == false)
-        {
-            Utils.ShowMessageBox(this, "Error marking proposal as saved");
-            return;
-        }
         MakeReport(true);
     }
     protected void btnPreview_Click(object sender, EventArgs e)
@@ -1979,5 +1965,34 @@ public partial class frmproposal : System.Web.UI.Page
             OraDBConnection.ExecQry(sql);
         }
         Makeproreport_pc();
+    }
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        string sql;
+
+        //check if already saved
+        sql = "select status from cadre.tp_proposals where pno = " + PRONO;
+        if (OraDBConnection.GetScalar(sql) == "S")
+        {
+            Utils.ShowMessageBox(this, "Office order already saved");
+            return;
+        }
+
+        if (Save())
+        {
+            sql = string.Format("update cadre.tp_proposals set status='S',oonum='{0}',oodate='{1}' where pno={2}",
+            txtOoNum.Text, txtOoDate.Text, PRONO);
+
+            if (!OraDBConnection.ExecQry(sql))
+            {
+                Utils.ShowMessageBox(this, "Error marking propsal as saved");
+            }
+            btnSave.Enabled = false;
+            Utils.ShowMessageBox(this, "Proposal Saved");
+        }
+        else
+        {
+            Utils.ShowMessageBox(this, "Error saving proposal");
+        }
     }
 }
