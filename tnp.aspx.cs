@@ -14,6 +14,7 @@ using System.Text;
 
 public partial class frmproposal : System.Web.UI.Page
 {
+    #region DataMembers
     int PRONO;
     private enum rowTypes
     {
@@ -21,6 +22,9 @@ public partial class frmproposal : System.Web.UI.Page
         SPECIAL_LOC,
         LEAVE_RET_EVENT,
     };
+    #endregion
+
+    #region Methods
     private void FillGrid()
     {
         string sql;
@@ -1144,105 +1148,38 @@ public partial class frmproposal : System.Web.UI.Page
             return false;
         }
     }
-    [System.Web.Services.WebMethodAttribute()]
-    [System.Web.Script.Services.ScriptMethodAttribute()]
-    public static string[] GetDesgs(string prefixText, int count, string contextKey)
+    private bool CheckOONum()
     {
-        prefixText = prefixText.Replace(' ', '%');
+        DateTime checkdate;
 
-        if (Regex.IsMatch(prefixText, @"['!@#$^*~`]+") == true)
-            return null;
-
-        string sql = "select desgtext ||'-'|| desgcode from pshr.mast_desg where gazcode = 10 and " +
-                        "upper(desgtext) like upper('%" + prefixText + "%')";
-
-        System.Data.DataSet ds = OraDBConnection.GetData(sql);
-        List<string> list = new List<string>();
-        for (int i = 0; i < ds.Tables[0].Rows.Count; i++)
-            list.Add(ds.Tables[0].Rows[i][0].ToString());
-        return list.ToArray();
-    }
-    [WebMethod]
-    public static string GetDesgs2()
-    {
-        StringBuilder sbLocs = new StringBuilder();
-        string sql = "select desgtext ||'-'|| desgcode as desg from pshr.mast_desg where gazcode = 10 order by desgtext";
-        System.Data.DataSet ds = OraDBConnection.GetData(sql);
-        foreach (System.Data.DataRow drow in ds.Tables[0].Rows)
+        if (txtOoNum.Text.Length < 1)
         {
-            sbLocs.AppendFormat("{0}:", drow["desg"]);
+            Utils.ShowMessageBox(this, "Enter O/o Number");
+            return false;
         }
-        return sbLocs.ToString();
-    }
-    [System.Web.Services.WebMethodAttribute()]
-    [System.Web.Script.Services.ScriptMethodAttribute()]
-    public static string[] GetLocs(string prefixText, int count, string contextKey)
-    {
-        prefixText = prefixText.Replace(' ', '%');
-
-        if (Regex.IsMatch(prefixText, @"['!@#$^*~`]+") == true)
-            return null;
-
-        string sql = "select locname ||'-'|| loccode from pshr.mast_loc where " +
-                        "upper(locname) like upper('%" + prefixText + "%')";
-        System.Data.DataSet ds = OraDBConnection.GetData(sql);
-        List<string> list = new List<string>();
-        for (int i = 0; i < ds.Tables[0].Rows.Count; i++)
-            list.Add(ds.Tables[0].Rows[i][0].ToString());
-        return list.ToArray();
-    }   
-    [WebMethod]
-    public static string GetLocs2()
-    {
-        StringBuilder sbLocs = new StringBuilder();
-        string sql = "select loccode,locname from pshr.mast_loc where aloc=1 order by locname";
-        System.Data.DataSet ds = OraDBConnection.GetData(sql);
-        foreach (System.Data.DataRow drow in ds.Tables[0].Rows)
+        if (txtEndorsNo.Text.Length < 1)
         {
-            sbLocs.AppendFormat("{0}-{1}:", drow["locname"], drow["loccode"]);
+            Utils.ShowMessageBox(this, "Enter Endorsement Number");
+            return false;
         }
-        return sbLocs.ToString();
-    }
-    [WebMethod]
-    public static string GetNames2()
-    {
-        StringBuilder sbLocs = new StringBuilder();
-        //string sql = "select pshr.get_fullname(empid) || '(' || empid || ')' as name from pshr.empperso where " +
-        //                "recstatus = 10 and empid like '1%' order by pshr.get_fullname(empid),empid";
-        string sql = "select pshr.get_fullname(empid) || '(' || empid || ')' as name from pshr.empperso where " +
-                        "recstatus = 10 order by pshr.get_fullname(empid),empid";
-        System.Data.DataSet ds = OraDBConnection.GetData(sql);
-        foreach (System.Data.DataRow drow in ds.Tables[0].Rows)
+        if (DateTime.TryParse(txtOoDate.Text, out checkdate) == false)
         {
-            sbLocs.AppendFormat("{0}:", drow["name"]);
+            Utils.ShowMessageBox(this, "Enter a valid date");
+            return false;
         }
-        return sbLocs.ToString();
-    }
-    [WebMethod]
-    public static string GiveCount()
-    {
-        return "123";
-    }
-    [System.Web.Services.WebMethodAttribute()]
-    [System.Web.Script.Services.ScriptMethodAttribute()]
-    public static string[] GetNames(string prefixText, int count, string contextKey)
-    {
-        prefixText = prefixText.Replace(' ', '%');
-        prefixText = prefixText.ToUpper();
-        if (Regex.IsMatch(prefixText, @"['!@#$^*~`]+") == true)
-            return null;
-        string sql = "select pshr.get_fullname(empid) || '(' || empid || ')' from pshr.empperso where " +
-                        "pshr.get_fullname(empid) like '%" + prefixText + "%' " +
-                        "and recstatus = 10 " +
-                        "and empid like '1%' " +
-                        "order by pshr.get_fullname(empid),empid";
-        System.Data.DataSet ds = OraDBConnection.GetData(sql);
-        List<string> list = new List<string>();
-        for (int i = 0; i < ds.Tables[0].Rows.Count; i++)
-            list.Add(ds.Tables[0].Rows[i][0].ToString());
-        return list.ToArray();
-    }
 
+        //check if oonum is unique
+        string sql = string.Format("select count(*) from cadre.tp_proposals where oonum = '{0}' and pno != '{1}'", txtOoNum.Text, PRONO);
+        if (OraDBConnection.GetScalar(sql) != "0")
+        {
+            Utils.ShowMessageBox(this, "This Office Order Number already exists for a different proposal");
+            return false;
+        }
+        return true;
+    }
+    #endregion
+
+    #region Events
     protected void Page_Load(object sender, EventArgs e)
     {
         string str_propno = Session["proposalno"] as string;
@@ -1556,34 +1493,10 @@ public partial class frmproposal : System.Web.UI.Page
     }
     protected void btnGenOO_Click(object sender, EventArgs e) 
     {
-        string sql;
-        DateTime checkdate;
-
-        if (txtOoNum.Text.Length < 1)
+        if (CheckOONum())
         {
-            Utils.ShowMessageBox(this, "Enter O/o Number");
-            return;
+            MakeReport(true);
         }
-        if (txtEndorsNo.Text.Length < 1)
-        {
-            Utils.ShowMessageBox(this, "Enter Endorsement Number");
-            return;
-        }
-        if (DateTime.TryParse(txtOoDate.Text, out checkdate) == false)
-        {
-            Utils.ShowMessageBox(this, "Enter a valid date");
-            return;
-        }
-
-        //check if oonum is unique
-        sql = string.Format("select count(*) from cadre.tp_proposals where oonum = '{0}' and pno != '{1}'", txtOoNum.Text, PRONO);
-        if (OraDBConnection.GetScalar(sql) != "0")
-        {
-            Utils.ShowMessageBox(this, "This Office Order Number already exists for a different proposal");
-            return;
-        }
-
-        MakeReport(true);
     }
     protected void btnPreview_Click(object sender, EventArgs e)
     {
@@ -1978,6 +1891,11 @@ public partial class frmproposal : System.Web.UI.Page
             return;
         }
 
+        if (CheckOONum() == false)
+        {
+            return;
+        }
+
         if (Save())
         {
             sql = string.Format("update cadre.tp_proposals set status='S',oonum='{0}',oodate='{1}' where pno={2}",
@@ -1988,11 +1906,113 @@ public partial class frmproposal : System.Web.UI.Page
                 Utils.ShowMessageBox(this, "Error marking propsal as saved");
             }
             btnSave.Enabled = false;
-            Utils.ShowMessageBox(this, "Proposal Saved");
+            Utils.ShowMessageBox(this, "Order Saved and Implemented");
         }
         else
         {
             Utils.ShowMessageBox(this, "Error saving proposal");
         }
     }
+    #endregion
+
+    #region WebMethods
+    [System.Web.Services.WebMethodAttribute()]
+    [System.Web.Script.Services.ScriptMethodAttribute()]
+    public static string[] GetDesgs(string prefixText, int count, string contextKey)
+    {
+        prefixText = prefixText.Replace(' ', '%');
+
+        if (Regex.IsMatch(prefixText, @"['!@#$^*~`]+") == true)
+            return null;
+
+        string sql = "select desgtext ||'-'|| desgcode from pshr.mast_desg where gazcode = 10 and " +
+                        "upper(desgtext) like upper('%" + prefixText + "%')";
+
+        System.Data.DataSet ds = OraDBConnection.GetData(sql);
+        List<string> list = new List<string>();
+        for (int i = 0; i < ds.Tables[0].Rows.Count; i++)
+            list.Add(ds.Tables[0].Rows[i][0].ToString());
+        return list.ToArray();
+    }
+    [WebMethod]
+    public static string GetDesgs2()
+    {
+        StringBuilder sbLocs = new StringBuilder();
+        string sql = "select desgtext ||'-'|| desgcode as desg from pshr.mast_desg where gazcode = 10 order by desgtext";
+        System.Data.DataSet ds = OraDBConnection.GetData(sql);
+        foreach (System.Data.DataRow drow in ds.Tables[0].Rows)
+        {
+            sbLocs.AppendFormat("{0}:", drow["desg"]);
+        }
+        return sbLocs.ToString();
+    }
+    [System.Web.Services.WebMethodAttribute()]
+    [System.Web.Script.Services.ScriptMethodAttribute()]
+    public static string[] GetLocs(string prefixText, int count, string contextKey)
+    {
+        prefixText = prefixText.Replace(' ', '%');
+
+        if (Regex.IsMatch(prefixText, @"['!@#$^*~`]+") == true)
+            return null;
+
+        string sql = "select locname ||'-'|| loccode from pshr.mast_loc where " +
+                        "upper(locname) like upper('%" + prefixText + "%')";
+        System.Data.DataSet ds = OraDBConnection.GetData(sql);
+        List<string> list = new List<string>();
+        for (int i = 0; i < ds.Tables[0].Rows.Count; i++)
+            list.Add(ds.Tables[0].Rows[i][0].ToString());
+        return list.ToArray();
+    }
+    [WebMethod]
+    public static string GetLocs2()
+    {
+        StringBuilder sbLocs = new StringBuilder();
+        string sql = "select loccode,locname from pshr.mast_loc where aloc=1 order by locname";
+        System.Data.DataSet ds = OraDBConnection.GetData(sql);
+        foreach (System.Data.DataRow drow in ds.Tables[0].Rows)
+        {
+            sbLocs.AppendFormat("{0}-{1}:", drow["locname"], drow["loccode"]);
+        }
+        return sbLocs.ToString();
+    }
+    [WebMethod]
+    public static string GetNames2()
+    {
+        StringBuilder sbLocs = new StringBuilder();
+        //string sql = "select pshr.get_fullname(empid) || '(' || empid || ')' as name from pshr.empperso where " +
+        //                "recstatus = 10 and empid like '1%' order by pshr.get_fullname(empid),empid";
+        string sql = "select pshr.get_fullname(empid) || '(' || empid || ')' as name from pshr.empperso where " +
+                        "recstatus = 10 order by pshr.get_fullname(empid),empid";
+        System.Data.DataSet ds = OraDBConnection.GetData(sql);
+        foreach (System.Data.DataRow drow in ds.Tables[0].Rows)
+        {
+            sbLocs.AppendFormat("{0}:", drow["name"]);
+        }
+        return sbLocs.ToString();
+    }
+    [WebMethod]
+    public static string GiveCount()
+    {
+        return "123";
+    }
+    [System.Web.Services.WebMethodAttribute()]
+    [System.Web.Script.Services.ScriptMethodAttribute()]
+    public static string[] GetNames(string prefixText, int count, string contextKey)
+    {
+        prefixText = prefixText.Replace(' ', '%');
+        prefixText = prefixText.ToUpper();
+        if (Regex.IsMatch(prefixText, @"['!@#$^*~`]+") == true)
+            return null;
+        string sql = "select pshr.get_fullname(empid) || '(' || empid || ')' from pshr.empperso where " +
+                        "pshr.get_fullname(empid) like '%" + prefixText + "%' " +
+                        "and recstatus = 10 " +
+                        "and empid like '1%' " +
+                        "order by pshr.get_fullname(empid),empid";
+        System.Data.DataSet ds = OraDBConnection.GetData(sql);
+        List<string> list = new List<string>();
+        for (int i = 0; i < ds.Tables[0].Rows.Count; i++)
+            list.Add(ds.Tables[0].Rows[i][0].ToString());
+        return list.ToArray();
+    }
+    #endregion
 }
