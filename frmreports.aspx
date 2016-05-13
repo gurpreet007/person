@@ -151,7 +151,11 @@
                     onclick="btnshowpanel_Click" />
             </td>
             <td class="style4">
-                &nbsp;</td>
+                <asp:Button ID="btnAllOO" runat="server" onclick="btnAllOO_Click" 
+                    Text="All OO" Height="26px" />
+                <asp:Button ID="btnAllOO_PC" runat="server" onclick="btnAllOO_PC_Click" 
+                    Text="All OO PC" Height="26px" />
+            </td>
             <td>
                 &nbsp;</td>
         </tr>

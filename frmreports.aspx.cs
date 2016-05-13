@@ -18,6 +18,9 @@ public partial class frmreports : System.Web.UI.Page
             Fillcateg();
             ControlControls();
         }
+        btnAllOO.Text = "All Office Orders";
+        btnAllOO_PC.Text = "All Office Orders" + Environment.NewLine + "with Private Comments";
+        btnAllOO_PC.Height = 46;
     }
     private void Filldesg()
     {
@@ -444,5 +447,79 @@ public partial class frmreports : System.Web.UI.Page
         Response.Write(stringwrite.ToString());
         Response.End();
         dg.Dispose();
+    }
+
+
+    protected void btnAllOO_Click(object sender, EventArgs e)
+    {
+        string empid = txtempid.Text;
+        string sql = "select m.sno,tpp.oonum as oonum, "+
+            "to_char(tpp.oodate,'dd-mm-yyyy') as oodate, "+
+            "'12' as fsize, pshr.get_fullname(m.empid),to_char(m.empid) as empid,pshr.get_dob(m.empid) as dob,"+
+            "pshr.get_post(m.oldloccode) as old_work_loc,m.oldloccode as old_work_loccode,pshr.get_desg(m.olddesgcode) as old_work_desg, m.olddesgcode as old_work_desgcode,"+
+            "DECODE(m.rowno,0,pshr.get_post(m.oldloccode), pshr.get_post(cadre.get_lcode_rno(m.rowno))) AS old_pc_loc,"+
+            "DECODE(m.rowno,0,m.oldloccode, cadre.get_lcode_rno(m.rowno)) AS old_pc_loccode,"+
+            "DECODE(m.rowno,0,pshr.get_desg(m.olddesgcode), pshr.get_desg(cadre.get_dcode_rno(m.rowno))) AS old_pc_desg, "+
+            "DECODE(m.rowno,0,m.olddesgcode, cadre.get_dcode_rno(m.rowno)) AS old_pc_desgcode, "+
+            "DECODE(m.rowno,0,'0', cadre.get_indx_rno(m.rowno)) AS old_pc_indx,  cadre.get_org_plants(m.cloccode) as new_work_loc,"+
+            "m.cloccode as new_work_loccode,pshr.get_desg(m.cdesgcode) as new_work_desg,m.cdesgcode as new_work_desgcode,"+
+            "decode(length(m.proposed_rowno),9,pshr.get_post(m.proposed_rowno), cadre.get_org_plants(cadre.get_lcode_rno(m.proposed_rowno))) AS new_pc_loc,"+
+            "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode,"+
+            "DECODE(m.rowno,0,pshr.get_desg(m.olddesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, "+
+            "DECODE(m.rowno,0,m.olddesgcode, cadre.get_dcode_rno(m.proposed_rowno)) AS new_pc_desgcode, "+
+            "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.remarks,'G' as grp,m.propno, to_char(m.newempid) as newempid, m.status, "+
+            "m.disp_left, m.disp_right, pshr.get_soccat(m.empid) as categ "+
+            "from cadre.propcadrmap m, cadre.tp_proposals tpp  "+
+            "where m.propno = tpp.pno and m.status is not null AND M.STATUS NOT IN ('S','V') "+
+            "and m.propno in (select propno from cadre.propcadrmap where empid = "+empid+") and tpp.status='S' " +
+            "AND m.cloccode is not null order by oodate,sno";
+
+        System.Data.DataSet ds = OraDBConnection.GetData(sql);
+        string pdfPath;
+        pdfPath = Server.MapPath("office_orders\\all_orders_"+empid+".pdf");
+
+        CrystalDecisions.Web.CrystalReportSource CrystalReportSource1 = new CrystalDecisions.Web.CrystalReportSource();
+        CrystalReportSource1.Report.FileName = Server.MapPath("Reports\\all_rptposttrans.rpt");
+        CrystalReportSource1.ReportDocument.SetDataSource(ds.Tables[0]);
+        CrystalReportSource1.DataBind();
+
+        CrystalReportSource1.ReportDocument.ExportToDisk(CrystalDecisions.Shared.ExportFormatType.PortableDocFormat, pdfPath);
+        Utils.DownloadFile(pdfPath);
+    }
+    protected void btnAllOO_PC_Click(object sender, EventArgs e)
+    {
+        string empid = txtempid.Text;
+        string sql = "select m.sno,tpp.oonum as oonum, " +
+            "to_char(tpp.oodate,'dd-mm-yyyy') as oodate, " +
+            "'12' as fsize, pshr.get_fullname(m.empid),to_char(m.empid) as empid,pshr.get_dob(m.empid) as dob," +
+            "pshr.get_post(m.oldloccode) as old_work_loc,m.oldloccode as old_work_loccode,pshr.get_desg(m.olddesgcode) as old_work_desg, m.olddesgcode as old_work_desgcode," +
+            "DECODE(m.rowno,0,pshr.get_post(m.oldloccode), pshr.get_post(cadre.get_lcode_rno(m.rowno))) AS old_pc_loc," +
+            "DECODE(m.rowno,0,m.oldloccode, cadre.get_lcode_rno(m.rowno)) AS old_pc_loccode," +
+            "DECODE(m.rowno,0,pshr.get_desg(m.olddesgcode), pshr.get_desg(cadre.get_dcode_rno(m.rowno))) AS old_pc_desg, " +
+            "DECODE(m.rowno,0,m.olddesgcode, cadre.get_dcode_rno(m.rowno)) AS old_pc_desgcode, " +
+            "DECODE(m.rowno,0,'0', cadre.get_indx_rno(m.rowno)) AS old_pc_indx,  cadre.get_org_plants(m.cloccode) as new_work_loc," +
+            "m.cloccode as new_work_loccode,pshr.get_desg(m.cdesgcode) as new_work_desg,m.cdesgcode as new_work_desgcode," +
+            "decode(length(m.proposed_rowno),9,pshr.get_post(m.proposed_rowno), cadre.get_org_plants(cadre.get_lcode_rno(m.proposed_rowno))) AS new_pc_loc," +
+            "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode," +
+            "DECODE(m.rowno,0,pshr.get_desg(m.olddesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
+            "DECODE(m.rowno,0,m.olddesgcode, cadre.get_dcode_rno(m.proposed_rowno)) AS new_pc_desgcode, " +
+            "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.remarks,'G' as grp,m.propno, to_char(m.newempid) as newempid, m.status, " +
+            "m.disp_left, m.disp_right, m.prvcomment, pshr.get_soccat(m.empid) as categ " +
+            "from cadre.propcadrmap m, cadre.tp_proposals tpp  " +
+            "where m.propno = tpp.pno and m.status is not null AND M.STATUS NOT IN ('S','V') " +
+            "and m.propno in (select propno from cadre.propcadrmap where empid = " + empid + ") and tpp.status='S' " +
+            "AND m.cloccode is not null order by oodate,sno";
+
+        System.Data.DataSet ds = OraDBConnection.GetData(sql);
+        string pdfPath;
+        pdfPath = Server.MapPath("office_orders\\all_orders_" + empid + ".pdf");
+
+        CrystalDecisions.Web.CrystalReportSource CrystalReportSource1 = new CrystalDecisions.Web.CrystalReportSource();
+        CrystalReportSource1.Report.FileName = Server.MapPath("Reports\\all_rptposttrans_pc.rpt");
+        CrystalReportSource1.ReportDocument.SetDataSource(ds.Tables[0]);
+        CrystalReportSource1.DataBind();
+
+        CrystalReportSource1.ReportDocument.ExportToDisk(CrystalDecisions.Shared.ExportFormatType.PortableDocFormat, pdfPath);
+        Utils.DownloadFile(pdfPath);
     }
 }
