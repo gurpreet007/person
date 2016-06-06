@@ -372,13 +372,13 @@ public partial class frmproposalmenu : System.Web.UI.Page
             string sql_prop_dup = "insert into cadre.propcadrmap " +
                                     "select empid, rowno, status, proposed_rowno, cloccode, cdesgcode, remarks, sno, " +
                                     "(select max(pno) from cadre.tp_proposals), " +
-                                    "newempid, displacedid, last_event, olddesgcode, oldloccode, prvcomment " +
+                                    "newempid, displacedid, last_event, olddesgcode, oldloccode, prvcomment, disp_left, disp_right " +
                                     "from cadre.propcadrmap where propno = " + dupNo;
             string sql_prop_merge = "insert into cadre.propcadrmap " +
                                     "select empid, rowno, status, proposed_rowno, cloccode, cdesgcode, remarks, "+
                                     "sno+(select max(sno) from cadre.propcadrmap where propno = (select max(pno) from cadre.tp_proposals)), "+
                                     "(select max(pno) from cadre.tp_proposals), " +
-                                    "newempid, displacedid, last_event, olddesgcode, oldloccode, prvcomment " +
+                                    "newempid, displacedid, last_event, olddesgcode, oldloccode, prvcomment, disp_left, disp_right " +
                                     "from cadre.propcadrmap where propno = " + mergeNo;
             string sql_cc_dup = "insert into CADRE.CCLIST_PROPOSAL_PERSON " +
                                     "select sno, (select max(pno) from cadre.tp_proposals), ccnum, loc from " +
