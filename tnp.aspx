@@ -7,6 +7,7 @@
         #divchoose {display: inline-block;  width:30%; padding:5px; background-color:White; color:Black; text-align:left; padding-left:30px; border-right-style:dotted; border-right-width:1px}
         #divpropose {display: inline-block; width:50%; padding:5px; background-color:White; color:Black; vertical-align:top; height:100%}
         #grid {margin: auto; width:90%; clear: both; padding:5px; background-color:White; color:Black}
+        #options {margin: auto; width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
         #prop_controls {margin: auto; width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
         #prev_controls {margin: auto;width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
         #save_controls {margin: auto;width:90%; clear: both; padding:5px; background-color:Silver; color:White}
@@ -15,6 +16,8 @@
         #grid {overflow:auto}
         #drpLocs {width:80%;max-width:90%; overflow:hidden}
         #txtPropLine {width:80%; height:40px}
+        #lnkExport {margin-left:10px; margin-right:60px}
+        #lnkImport {margin-right:10px}
         input[type=text].divsave {width:80px;}
         input[type=text].divpropose {width:80%;}
         textarea {width:80%;}
@@ -69,6 +72,7 @@
                 <asp:ListItem Value="S">Show Special</asp:ListItem>
                 <asp:ListItem Value="H">Show Higher Posts</asp:ListItem>
             </asp:DropDownList>
+            <asp:CheckBox ID="cbOwnInterest" runat="server" Text="Transfer Own Interest"/>
             <br />
             <asp:TextBox ID="txtLocFilter" runat="server" AutoPostBack="True" CssClass="divpropose unwatermarked" ontextchanged="txtLocFilter_TextChanged"></asp:TextBox>
             <br />
@@ -99,6 +103,13 @@
                 onrowediting="gvProposals_RowEditing">
                 <HeaderStyle BackColor="Silver" ForeColor="White" />
             </asp:GridView>
+        </div>
+        <div id="options">
+            <asp:LinkButton ID = "lnkExport" Text="Export Entries" runat="server" 
+                onclick="lnkExport_Click" />
+            <asp:FileUpload ID="FileUploader" runat="server" Width="200px" />
+            <asp:LinkButton ID = "lnkImport" Text="Import Entries" runat="server" 
+                onclick="lnkImport_Click" />
         </div>
         <div id="prop_controls">
             <strong>Proposal Report: </strong>
@@ -143,7 +154,9 @@
         </div>
         <div id="prev_controls">
             <strong>Preview Report: </strong>
-            <a href="frmnotes.aspx" target="_blank">Insert Notes</a>
+            <%--<a href="frmnotes.aspx" target="_blank">Insert Notes</a>--%>
+            <asp:DropDownList runat="server" ID="ddBigNotes">
+            </asp:DropDownList>
             <a href="CC.aspx" target="_blank">Insert CC List</a>
             <asp:DropDownList ID="ddFSizePrev" runat="server">
                 <asp:ListItem>6</asp:ListItem>
@@ -151,8 +164,8 @@
                 <asp:ListItem>8</asp:ListItem>
                 <asp:ListItem>9</asp:ListItem>
                 <asp:ListItem>10</asp:ListItem>
-                <asp:ListItem Selected="True">11</asp:ListItem>
-                <asp:ListItem>12</asp:ListItem>
+                <asp:ListItem>11</asp:ListItem>
+                <asp:ListItem Selected="True">12</asp:ListItem>
                 <asp:ListItem>13</asp:ListItem>
                 <asp:ListItem>14</asp:ListItem>
                 <asp:ListItem>15</asp:ListItem>

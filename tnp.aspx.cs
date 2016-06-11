@@ -11,6 +11,7 @@ using CrystalDecisions.CrystalReports;
 using CrystalDecisions.Shared;
 using System.Web.Services;
 using System.Text;
+using System.Data.OleDb;
 
 public partial class frmproposal : System.Web.UI.Page
 {
@@ -51,7 +52,7 @@ public partial class frmproposal : System.Web.UI.Page
               "cadre.get_org_plants(cloccode) as \"Proposed Location\"," +
               "pshr.get_desg(cdesgcode) as \"Proposed Designation\"," +
               "disp_right as Right_Display, " +
-              "Remarks,newempid,prvcomment from cadre.propcadrmap where status = 'T' and propno =" + PRONO +
+              "Remarks,newempid,prvcomment from cadre.propcadrmap where status in ('T','O') and propno =" + PRONO +
               ") a order by a.sno";
 
         ds = OraDBConnection.GetData(sql);
@@ -68,7 +69,7 @@ public partial class frmproposal : System.Web.UI.Page
         //    "empid in (select empid from cadre.propcadrmap where status in ('T','P') and proposed_rowno is null and propno={0})",prono);
 
         string sql = string.Format("select empid, pshr.get_fullname(empid) as name from pshr.empperso em where " +
-            "empid in (select empid from cadre.propcadrmap where status in ('T','P') and proposed_rowno is null and propno={0})", PRONO);
+            "empid in (select empid from cadre.propcadrmap where status in ('T','P','O') and proposed_rowno is null and propno={0})", PRONO);
 
         System.Data.DataSet ds = OraDBConnection.GetData(sql);
         drpOfficer.Items.Clear();
@@ -209,7 +210,7 @@ public partial class frmproposal : System.Web.UI.Page
         //create filter expression
         filterexp = (filter != "") ? string.Format(" and upper(locname) like upper('%{0}%')", filter.Replace(" ","%")) : "";
         
-        if (status == "T")
+        if (status == "T" || status == "O")
         {
             if (vacfilter == "A" || vacfilter == "E")
             {
@@ -409,7 +410,7 @@ public partial class frmproposal : System.Web.UI.Page
     }
     private bool isOtherRowUpdated(string row)
     {
-        string sql = string.Format("select count(*) from cadre.propcadrmap where rowno={0} and status in ('P','T') " +
+        string sql = string.Format("select count(*) from cadre.propcadrmap where rowno={0} and status in ('P','T','O') " +
                                         "and proposed_rowno is not null", row);
         return OraDBConnection.GetScalar(sql) == "1";
     }
@@ -466,6 +467,9 @@ public partial class frmproposal : System.Web.UI.Page
                     break;
                 case "T":
                     eventcode = "36";
+                    break;
+                case "O":
+                    eventcode = "37";
                     break;
                 case "S":
                     eventcode = "12";
@@ -671,7 +675,7 @@ public partial class frmproposal : System.Web.UI.Page
 
         //check if any outstanding entry is pending
         string out_count = OraDBConnection.GetScalar("select count(*) from cadre.propcadrmap where "+
-            "status in ('T','P') and proposed_rowno is null and propno="+PRONO);
+            "status in ('T','P','O') and proposed_rowno is null and propno="+PRONO);
         if (out_count != "0")
         {
             Utils.ShowMessageBox(this, "Outstanding entries are pending.");
@@ -698,6 +702,10 @@ public partial class frmproposal : System.Web.UI.Page
             else if (rstatus == "T")
             {
                 eventcode = "36"; //CTRP
+            }
+            else if (rstatus == "O")
+            {
+                eventcode = "37"; //CTRO
             }
             else if (rstatus.StartsWith("EV_"))
             {
@@ -843,16 +851,21 @@ public partial class frmproposal : System.Web.UI.Page
         string endono = "-";
         string notes = "1";
         string propno = this.PRONO.ToString();
-
+        string bignote=string.Empty;
         if (save)
         {
             oonum = txtOoNum.Text;
             oodate = txtOoDate.Text;
             endono = txtEndorsNo.Text;
         }
+        if (ddBigNotes.SelectedValue != "")
+        {
+            bignote = OraDBConnection.GetScalar(string.Format("select data from cadre.bignotes where name = '{0}'", ddBigNotes.SelectedValue));
+        }
         string sql = "select m.sno,'" + oonum + "' as oonum1, '" + oodate + "' as oodate1, '" + notes + "' as notes," +
                     "'" + endono + "' as endono, " +
                     ddFSizePrev.SelectedValue + " as fsize, " +
+                    "'" + bignote + "' as bignote, "+
                     "(select count(*) from cadre.propcadrmap where propno = " + propno + ") TotCount, " +
                     "(select count(*) from cadre.propcadrmap where status = 'P' and propno = " + propno + ") PCount, " +
                     " pshr.get_fullname(e.empid) as fullname,to_char(e.empid) as empid,to_char(e.dob,'dd-mm-yyyy') as dob," +
@@ -893,11 +906,11 @@ public partial class frmproposal : System.Web.UI.Page
         CrystalReportSource1.ReportDocument.SetDataSource(ds.Tables[0]);
         CrystalReportSource1.DataBind();
 
-        System.Data.DataSet dsnotes;
-        sql = "select * from cadre.notes_proposal_person where ccnum > 0 and proposalno = " + propno + " order by sno";
-        dsnotes = OraDBConnection.GetData(sql);
-        CrystalReportSource1.ReportDocument.Subreports["notes"].SetDataSource(dsnotes.Tables[0]);
-        CrystalReportSource1.DataBind();
+        //System.Data.DataSet dsnotes;
+        //sql = "select * from cadre.notes_proposal_person where ccnum > 0 and proposalno = " + propno + " order by sno";
+        //dsnotes = OraDBConnection.GetData(sql);
+        //CrystalReportSource1.ReportDocument.Subreports["notes"].SetDataSource(dsnotes.Tables[0]);
+        //CrystalReportSource1.DataBind();
 
         System.Data.DataSet dscc;
         sql = "select * from cadre.cclist_proposal_person where ccnum > 0 and proposalno = " + propno + " order by sno";
@@ -1177,6 +1190,16 @@ public partial class frmproposal : System.Web.UI.Page
         }
         return true;
     }
+    private void FillBigNotes()
+    {
+        string sql = "select name, name as txtval from cadre.bignotes where type='N' order by addedon desc";
+        //string sql = "select name, name || '(' || tags || ')' as txtval from cadre.bignotes where type='N' order by addedon desc";
+        ddBigNotes.DataSource = OraDBConnection.GetData(sql);
+        ddBigNotes.DataTextField = "txtval";
+        ddBigNotes.DataValueField = "name";
+        ddBigNotes.DataBind();
+        ddBigNotes.Items.Insert(0, new ListItem("Select Note", ""));
+    }
     #endregion
 
     #region Events
@@ -1185,7 +1208,7 @@ public partial class frmproposal : System.Web.UI.Page
         string str_propno = Session["proposalno"] as string;
         if (str_propno == null)
         {
-            Response.Redirect("Login.aspx");
+            //Response.Redirect("Login.aspx");
             return;
         }
         PRONO = int.Parse(str_propno);
@@ -1195,7 +1218,7 @@ public partial class frmproposal : System.Web.UI.Page
         {
             if ((Session["loginy"] == null) || (Session["loginy"].ToString() != "1"))
             {
-                Response.Redirect("Login.aspx");
+                //Response.Redirect("Login.aspx");
                 return;
             }
             lblInfo.Text = "";
@@ -1218,7 +1241,7 @@ public partial class frmproposal : System.Web.UI.Page
             //txtName.Visible = false;
             //txtLoc.Visible = false;
 
-            string sqlPropLine = "select proplinemode, proplinetext, LASTLINEMODE, LASTLINETEXT from cadre.tp_proposals where pno = " + PRONO;
+            string sqlPropLine = "select proplinemode, proplinetext, LASTLINEMODE, LASTLINETEXT,bignote from cadre.tp_proposals where pno = " + PRONO;
             DataRow drow = OraDBConnection.GetData(sqlPropLine).Tables[0].Rows[0];
             if (drow["proplinemode"].ToString() == "A")
             {
@@ -1244,6 +1267,12 @@ public partial class frmproposal : System.Web.UI.Page
             //check if already saved
             string sql = "select status from cadre.tp_proposals where pno = " + PRONO;
             btnSave.Enabled = !(OraDBConnection.GetScalar(sql) == "S");
+
+            FillBigNotes();
+            if (drow["bignote"].ToString() != "")
+            {
+                ddBigNotes.SelectedIndex = ddBigNotes.Items.IndexOf(ddBigNotes.Items.FindByValue(drow["bignote"].ToString()));
+            }
         }
 
         FillGrid();
@@ -1299,6 +1328,11 @@ public partial class frmproposal : System.Web.UI.Page
         string displeft = txtDispLeft.Text;
         string dispright = txtDispRight.Text;
 
+        //own intereset
+        if (cbOwnInterest.Checked)
+        {
+            status = "O";
+        }
         txtEmpid.Text = "";
         //lblLoc.Text = "";
         //lbldesg.Text = "";
@@ -1513,6 +1547,8 @@ public partial class frmproposal : System.Web.UI.Page
         //    Utils.ShowMessageBox(this, "Error: Create CC List First");
         //    return;
         //}
+        string sql = string.Format("update cadre.tp_proposals set bignote = '{0}' where pno = {1}", ddBigNotes.SelectedValue, PRONO);
+        OraDBConnection.ExecQry(sql);
         MakeReport();
     }
     protected void drpLocs_SelectedIndexChanged(object sender, EventArgs e)
@@ -1570,7 +1606,7 @@ public partial class frmproposal : System.Web.UI.Page
             }
         }
 
-        if (hidStatus.Value == "T")
+        if (hidStatus.Value == "T" || hidStatus.Value == "O")
         {
             txtCDesg.Text = lblInfoDesg.Text + "-" + hidWDesgCode.Value;
             //txtCDesg.Text = lbldesg.Text + "-" + lblvaldesg.Text;
@@ -1720,7 +1756,7 @@ public partial class frmproposal : System.Web.UI.Page
         txtPrvComment.Text = drow["prvcomment"].ToString();
         txtDispLeft.Text = drow["disp_left"].ToString();
         txtDispRight.Text = drow["disp_right"].ToString();
-        lblInfo.Text = (drow["status"].ToString() == "T" ? "Transfer " : "Promote ") + drow["name"].ToString() + " to:";
+        lblInfo.Text = (drow["status"].ToString() == "P" ? "Promote " : "Transfer ") + drow["name"].ToString() + " to:";
     }
     protected void gvProposals_RowDeleting(object sender, GridViewDeleteEventArgs e)
     {
@@ -1804,6 +1840,7 @@ public partial class frmproposal : System.Web.UI.Page
         lblInfo.Text = string.Format("Transfer {0} to:", empid);
         //panProposed.Enabled = true;
         divpropose.Disabled = false;
+        cbOwnInterest.Visible = true;
     }
     protected void btnPromote_Click(object sender, EventArgs e)
     {
@@ -1830,6 +1867,7 @@ public partial class frmproposal : System.Web.UI.Page
         txtRemarks.Text = "i) On Promotion";
         //panProposed.Enabled = true;
         divpropose.Disabled = false;
+        cbOwnInterest.Visible = false;
     }
     protected void ddPropLineMode_SelectedIndexChanged(object sender, EventArgs e)
     {
@@ -2013,6 +2051,59 @@ public partial class frmproposal : System.Web.UI.Page
         for (int i = 0; i < ds.Tables[0].Rows.Count; i++)
             list.Add(ds.Tables[0].Rows[i][0].ToString());
         return list.ToArray();
+    }
+    protected void lnkExport_Click(object sender, EventArgs e)
+    {
+        string sql = "select sno,empid, pshr.get_fullname(empid) as name, " +
+                        "pshr.get_desg(olddesgcode) || '-' || pshr.get_org(oldloccode) as oldloc, " +
+                        "pshr.get_desg(CDESGCODE) || '-' || pshr.get_org(cloccode) as newloc," +
+                        "decode(status,'P','Promotion','Transfer') as status," +
+                        "remarks from cadre.propcadrmap where propno = " + PRONO + " order by sno";
+        Utils.DownloadXLS(sql, "entries.xls", this);
+    }
+    protected void lnkImport_Click(object sender, EventArgs e)
+    {
+        int empid;
+        int sno;
+        string remarks;
+        string sql;
+        string filepath = Server.MapPath("office_orders\\" + FileUploader.FileName);
+
+        if (FileUploader.HasFile)
+            try
+            {
+                FileUploader.SaveAs(filepath);
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowMessageBox(this,"Error: " + ex.Message);
+            }
+        else
+        {
+            return;
+        }
+
+        String connectionString = string.Format("Provider=Microsoft.Jet.OLEDB.4.0; data source={0}; Extended Properties=Excel 8.0;", filepath);
+
+        OleDbDataAdapter adapter = new OleDbDataAdapter("SELECT * FROM [Sheet1$]", connectionString);
+        DataSet ds = new DataSet();
+
+        adapter.Fill(ds, "tab");
+
+        DataTable data = ds.Tables["tab"];
+
+        foreach (DataRow drow in data.Rows)
+        {
+            sno = Int32.Parse(drow["sno"].ToString());
+            empid = Int32.Parse(drow["empid"].ToString());
+            remarks = drow["remarks"].ToString();
+
+            sql = String.Format("update cadre.propcadrmap set sno={0}, remarks = '{1}' where empid = '{2}' and propno = {3}", sno, remarks, empid, PRONO);
+            OraDBConnection.ExecQry(sql);
+        }
+
+        FillGrid();
+        Utils.ShowMessageBox(this, "Entries Uploaded");
     }
     #endregion
 }

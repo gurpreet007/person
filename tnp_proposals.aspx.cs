@@ -11,7 +11,7 @@ public partial class frmproposalmenu : System.Web.UI.Page
     string myaddress = string.Empty;
     protected void Page_Load(object sender, EventArgs e)
     {
-        if (Session["loginy"]==null || Session["loginy"].ToString() != "1")
+        if (Session["loginy"] == null || Session["loginy"].ToString() != "1")
         {
             Response.Redirect("./Login.aspx");
         }
