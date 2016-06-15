@@ -12,6 +12,11 @@ using CrystalDecisions.Shared;
 using System.Web.Services;
 using System.Text;
 using System.Data.OleDb;
+using OfficeOpenXml;
+using System.IO;
+using System.Drawing;
+using System.Data;
+using OfficeOpenXml.Style;
 
 public partial class frmproposal : System.Web.UI.Page
 {
@@ -2054,20 +2059,88 @@ public partial class frmproposal : System.Web.UI.Page
     }
     protected void lnkExport_Click(object sender, EventArgs e)
     {
-        string sql = "select sno,empid, pshr.get_fullname(empid) as name, " +
-                        "pshr.get_desg(olddesgcode) || '-' || pshr.get_org(oldloccode) as oldloc, " +
-                        "pshr.get_desg(CDESGCODE) || '-' || pshr.get_org(cloccode) as newloc," +
-                        "decode(status,'P','Promotion','Transfer') as status," +
-                        "remarks from cadre.propcadrmap where propno = " + PRONO + " order by sno";
-        Utils.DownloadXLS(sql, "entries.xls", this);
+        string sql;
+
+        sql = "select " +
+                "sno," +
+                "empid, " +
+                "pshr.get_fullname(empid) as name, " +
+                "pshr.get_desg(olddesgcode) || '-' || pshr.get_org(oldloccode) as oldloc, " +
+                "pshr.get_desg(CDESGCODE) || '-' || pshr.get_org(cloccode) as newloc," +
+                "decode(status,'P','Promotion','Transfer') as status," +
+                "remarks " +
+                "from cadre.propcadrmap where propno = "+PRONO+" order by sno";
+
+        string file = Server.MapPath("office_orders\\entries.xlsx");
+
+        if (File.Exists(file)) File.Delete(file);
+        FileInfo newFile = new FileInfo(file);
+
+        using (ExcelPackage xlPackage = new ExcelPackage(newFile))
+        {
+            // uncomment this line if you want the XML written out to the outputDir
+            //xlPackage.DebugMode = true; 
+
+            // get handle to the existing worksheet
+            ExcelWorksheet worksheet = xlPackage.Workbook.Worksheets.Add("Entries");
+
+            if (worksheet == null)
+                return;
+
+            const int startRow = 5;
+            int row = startRow;
+
+            worksheet.Cells["A1"].Value = "Entries for Propno: " + PRONO;
+            using (ExcelRange r = worksheet.Cells["A1:G1"])
+            {
+                r.Merge = true;
+                r.Style.Font.SetFromFont(new Font("Britannic Bold", 22, FontStyle.Italic));
+                r.Style.Font.Color.SetColor(Color.White);
+                r.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.CenterContinuous;
+                r.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                r.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(23, 55, 93));
+            }
+            worksheet.Cells["A4"].Value = "SNo";
+            worksheet.Cells["B4"].Value = "Empid";
+            worksheet.Cells["C4"].Value = "Name";
+            worksheet.Cells["D4"].Value = "OldLoc";
+            worksheet.Cells["E4"].Value = "NewLoc";
+            worksheet.Cells["F4"].Value = "Status";
+            worksheet.Cells["G4"].Value = "Remarks";
+            worksheet.Cells["A4:G4"].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            worksheet.Cells["A4:G4"].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(184, 204, 228));
+            worksheet.Cells["A4:G4"].Style.Font.Bold = true;
+
+            DataRowCollection drows = OraDBConnection.GetData(sql).Tables[0].Rows;
+            int col = 1;
+            foreach (DataRow drow in drows)
+            {
+                col = 1;
+                foreach (object item in drow.ItemArray)
+                {
+                    if (item != null)
+                        worksheet.Cells[row, col].Value = item;
+                    col++;
+                }
+                row++;
+            }
+
+            worksheet.Column(1).Width = 4;
+            worksheet.Column(2).Width = 8;
+            worksheet.Column(3).Width = 20;
+            worksheet.Column(4).Width = 30;
+            worksheet.Column(5).Width = 30;
+            worksheet.Column(6).Width = 10;
+            worksheet.Column(7).Width = 30;
+            worksheet.Row(1).Height = 40;
+            xlPackage.Save();
+        }
+        Utils.DownloadFile(file, true, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
     protected void lnkImport_Click(object sender, EventArgs e)
     {
-        int empid;
-        int sno;
-        string remarks;
         string sql;
-        string filepath = Server.MapPath("office_orders\\" + FileUploader.FileName);
+        string filepath = Server.MapPath("office_orders\\"+FileUploader.FileName);
 
         if (FileUploader.HasFile)
             try
@@ -2076,30 +2149,33 @@ public partial class frmproposal : System.Web.UI.Page
             }
             catch (Exception ex)
             {
-                Utils.ShowMessageBox(this,"Error: " + ex.Message);
+                Utils.ShowMessageBox(this, "Error: " + ex.Message);
             }
         else
         {
             return;
         }
 
-        String connectionString = string.Format("Provider=Microsoft.Jet.OLEDB.4.0; data source={0}; Extended Properties=Excel 8.0;", filepath);
-
-        OleDbDataAdapter adapter = new OleDbDataAdapter("SELECT * FROM [Sheet1$]", connectionString);
-        DataSet ds = new DataSet();
-
-        adapter.Fill(ds, "tab");
-
-        DataTable data = ds.Tables["tab"];
-
-        foreach (DataRow drow in data.Rows)
+        FileInfo xfile = new FileInfo(filepath);
+        using (ExcelPackage xlPackage = new ExcelPackage(xfile))
         {
-            sno = Int32.Parse(drow["sno"].ToString());
-            empid = Int32.Parse(drow["empid"].ToString());
-            remarks = drow["remarks"].ToString();
+            ExcelWorksheet worksheet = xlPackage.Workbook.Worksheets[1];
+            const int startRow = 5;
+            const int colSno = 1;
+            const int colEmpid = 2;
+            const int colRemarks = 7;
+            int sno;
+            int empid;
+            string remarks;
+            for (int row = startRow; worksheet.Cells[row, colSno].Value != null && worksheet.Cells[row, colSno].Value != ""; row++)
+            {
+                sno = int.Parse(worksheet.Cells[row, colSno].Value.ToString());
+                empid = int.Parse(worksheet.Cells[row, colEmpid].Value.ToString());
+                remarks = worksheet.Cells[row, colRemarks].Value != null ? worksheet.Cells[row, colRemarks].Value.ToString() : "";
 
-            sql = String.Format("update cadre.propcadrmap set sno={0}, remarks = '{1}' where empid = '{2}' and propno = {3}", sno, remarks, empid, PRONO);
-            OraDBConnection.ExecQry(sql);
+                sql = String.Format("update cadre.propcadrmap set sno={0}, remarks = '{1}' where empid = '{2}' and propno = {3}", sno, remarks, empid, PRONO);
+                OraDBConnection.ExecQry(sql);
+            }
         }
 
         FillGrid();
