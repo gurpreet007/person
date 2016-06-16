@@ -18,6 +18,7 @@
         #txtPropLine {width:80%; height:40px}
         #lnkExport {margin-left:10px; margin-right:60px}
         #lnkImport {margin-right:10px}
+        #locatePost{border-style:solid;border-width:1px}
         input[type=text].divsave {width:80px;}
         input[type=text].divpropose {width:80%;}
         textarea {width:80%;}
@@ -72,7 +73,10 @@
                 <asp:ListItem Value="S">Show Special</asp:ListItem>
                 <asp:ListItem Value="H">Show Higher Posts</asp:ListItem>
             </asp:DropDownList>
-            <asp:CheckBox ID="cbOwnInterest" runat="server" Text="Transfer Own Interest"/>
+            <asp:CheckBox ID="cbOwnInterest" runat="server" Text="Own Interest"/> 
+            <asp:LinkButton ID="lnkLocatePost" Text="Locate Post" runat="server" />
+            <asp:LinkButton ID="lnkPastePost" Text="Paste Post" runat="server" 
+                onclick="lnkPastePost_Click" />
             <br />
             <asp:TextBox ID="txtLocFilter" runat="server" AutoPostBack="True" CssClass="divpropose unwatermarked" ontextchanged="txtLocFilter_TextChanged"></asp:TextBox>
             <br />
@@ -201,8 +205,6 @@
     <script type="text/javascript">
         $(document).ready(function () {
             $('#txtEmpid').watermark('EMPID');
-            $('#txtName').watermark('Name');
-            $('#txtLoc').watermark('Posting Location');
             $('#txtLocFilter').watermark('Filter');
             $('#txtCLoc').watermark('Working Location');
             $('#txtCDesg').watermark('Working Designation');
@@ -216,34 +218,20 @@
             $('#txtEndorsNo').watermark('Endor. No.');
             $('#txtEventDate').watermark('Event Date');
             $('#txtNewEmpid').watermark('New EmpID (For JE to AE)');
-            doAutoComp('txtName', 'tnp.aspx/GetNames2');
-            doAutoComp('txtLoc', 'tnp.aspx/GetLocs2');
             doAutoComp('txtCLoc', 'tnp.aspx/GetLocs2');
             doAutoComp('txtCDesg', 'tnp.aspx/GetDesgs2');
-            //gurpreet
             $('#txtOoDate').datepicker(DT_PCKR_OPTS);
             $('#txtEventDate').datepicker(DT_PCKR_OPTS);
-
-            $('#txtName').addClass('hide');
-            $('#txtLoc').addClass('hide');
-
-            $('#drpSearchby').on('change', function () {
-                var cond = $('#drpSearchby').val();
-                if (cond == "empid") {
-                    $('#txtEmpid').removeClass('hide');
-                    $('#txtName').addClass('hide');
-                    $('#txtLoc').addClass('hide');
+            var winLocateObjRef = null;
+            $('#lnkLocatePost').click(function () {
+                if (winLocateObjRef == null || winLocateObjRef.closed) {
+                    myWin = window.open("./LocatePost.aspx", "LocatePost", "width=600, height=400, scrollbars=no, resizable=no, status=yes, dialog=yes, modal=yes");
+                    myWin.focus();
+                    return false;
                 }
-                else if (cond == "name") {
-                    $('#txtEmpid').addClass('hide');
-                    $('#txtName').removeClass('hide');
-                    $('#txtLoc').addClass('hide');
-                }
-                else if (cond == "posting") {
-                    $('#txtEmpid').addClass('hide');
-                    $('#txtName').addClass('hide');
-                    $('#txtLoc').removeClass('hide');
-                }
+                else {
+                    winLocateObjRef.focus();
+                };
             });
         });
     </script>
