@@ -399,6 +399,7 @@ public partial class frmproposal : System.Web.UI.Page
         txtPrvComment.Text = string.Empty;
         txtDispLeft.Text = string.Empty;
         txtDispRight.Text = string.Empty;
+        cbOwnInterest.Checked = false;
         drpLocs.Items.Clear();
     }
     private bool isFilled(string row)

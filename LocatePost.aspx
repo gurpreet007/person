@@ -12,6 +12,7 @@
             <asp:DropDownList runat="server" ID="ddDirect" AutoPostBack="true"
                 onselectedindexchanged="ddDirect_SelectedIndexChanged">
             </asp:DropDownList>
+            <asp:Label Text="" ID="lblLoccode" runat="server" />
             <br />
             <asp:DropDownList runat="server" ID="ddOrg" AutoPostBack="true" 
                 onselectedindexchanged="ddOrg_SelectedIndexChanged">

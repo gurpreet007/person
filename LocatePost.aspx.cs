@@ -131,6 +131,7 @@ public partial class LocatePost : System.Web.UI.Page
         DataSet ds;
         string loccode = GetLoccode();
 
+        lblLoccode.Text = loccode;
         sql = String.Format("select "+
             "pshr.get_desg(c.desgcode) || '-' || c.indx || ' at ' || "+
             "pshr.get_org(loccode) || nvl2(cm.empid,' (' || cm.empid || ') ','') as desg, c.rowno " +
