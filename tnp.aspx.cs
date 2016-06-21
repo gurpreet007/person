@@ -15,7 +15,6 @@ using System.Data.OleDb;
 using OfficeOpenXml;
 using System.IO;
 using System.Drawing;
-using System.Data;
 using OfficeOpenXml.Style;
 
 public partial class frmproposal : System.Web.UI.Page
@@ -46,7 +45,7 @@ public partial class frmproposal : System.Web.UI.Page
               "pshr.get_post(cloccode) as \"Proposed Location\"," +
               "pshr.get_desg(cdesgcode) as \"Proposed Designation\"," +
               "disp_right as Right_Display, " +
-              "Remarks,newempid, prvcomment from cadre.propcadrmap where status = 'P' and propno =" + PRONO +
+              "Remarks,sysremarks, newempid, prvcomment from cadre.propcadrmap where status = 'P' and propno =" + PRONO +
               " union all " +
               "select Sno,decode(status,'T','Transfer','P','Promotion') as Action," +
               "pshr.get_fullname(empid) as Name,EMPID, " +
@@ -57,7 +56,7 @@ public partial class frmproposal : System.Web.UI.Page
               "cadre.get_org_plants(cloccode) as \"Proposed Location\"," +
               "pshr.get_desg(cdesgcode) as \"Proposed Designation\"," +
               "disp_right as Right_Display, " +
-              "Remarks,newempid,prvcomment from cadre.propcadrmap where status in ('T','O') and propno =" + PRONO +
+              "Remarks,sysremarks,newempid,prvcomment from cadre.propcadrmap where status = 'T' and propno =" + PRONO +
               ") a order by a.sno";
 
         ds = OraDBConnection.GetData(sql);
@@ -74,7 +73,7 @@ public partial class frmproposal : System.Web.UI.Page
         //    "empid in (select empid from cadre.propcadrmap where status in ('T','P') and proposed_rowno is null and propno={0})",prono);
 
         string sql = string.Format("select empid, pshr.get_fullname(empid) as name from pshr.empperso em where " +
-            "empid in (select empid from cadre.propcadrmap where status in ('T','P','O') and proposed_rowno is null and propno={0})", PRONO);
+            "empid in (select empid from cadre.propcadrmap where status in ('T','P') and proposed_rowno is null and propno={0})", PRONO);
 
         System.Data.DataSet ds = OraDBConnection.GetData(sql);
         drpOfficer.Items.Clear();
@@ -215,7 +214,7 @@ public partial class frmproposal : System.Web.UI.Page
         //create filter expression
         filterexp = (filter != "") ? string.Format(" and upper(locname) like upper('%{0}%')", filter.Replace(" ","%")) : "";
         
-        if (status == "T" || status == "O")
+        if (status == "T")
         {
             if (vacfilter == "A" || vacfilter == "E")
             {
@@ -415,7 +414,7 @@ public partial class frmproposal : System.Web.UI.Page
     }
     private bool isOtherRowUpdated(string row)
     {
-        string sql = string.Format("select count(*) from cadre.propcadrmap where rowno={0} and status in ('P','T','O') " +
+        string sql = string.Format("select count(*) from cadre.propcadrmap where rowno={0} and status in ('P','T') " +
                                         "and proposed_rowno is not null", row);
         return OraDBConnection.GetScalar(sql) == "1";
     }
@@ -438,141 +437,6 @@ public partial class frmproposal : System.Web.UI.Page
         txtLocFilter.Visible = shide;
         txtCDesg.Visible = shide;
         txtRemarks.Visible = shide;
-    }
-    private bool Save_Temp()
-    {
-        string oonum = txtOoNum.Text;
-        string oodate = txtOoDate.Text;
-        string propno = this.PRONO.ToString();
-
-        string empid, eventcode = "0", cdesgcode, cloccode, rowno, proposed_rowno;
-        string pcloccode, sancdesg, sancindx, eventhistoryid;
-        string sql;
-        bool ret;
-        DataSet ds2;
-        DataRow row2;
-
-        DataSet ds = OraDBConnection.GetData("select * from cadre.propcadrmap where propno=" + propno);
-        if (ds.Tables[0].Rows.Count < 1)
-        {
-            Utils.ShowMessageBox(this, "Nothing to save.");
-            return false;
-        }
-
-        //delete old and possibly incomplete change made to emphistory due to previous saving of this office order
-        OraDBConnection.ExecQry("delete from emphistory where oonum='" + oonum + "' and odate = '" + oodate + "'");
-
-        foreach (DataRow row in ds.Tables[0].Rows)
-        {
-            empid = row["empid"].ToString();
-            switch (row["status"].ToString())
-            {
-                case "P":
-                    eventcode = "28";
-                    break;
-                case "T":
-                    eventcode = "36";
-                    break;
-                case "O":
-                    eventcode = "37";
-                    break;
-                case "S":
-                    eventcode = "12";
-                    break;
-                case "V":
-                    eventcode = "13";
-                    break;
-            }
-            cdesgcode = row["cdesgcode"].ToString();
-            cloccode = row["cloccode"].ToString();
-            rowno = OraDBConnection.GetScalar("select nvl(max(rowno),0)+1 from pshr.emphistory where empid=" + empid);
-
-            if (cloccode == "999999999")
-            {
-                eventcode = "2";
-            }
-
-            proposed_rowno = row["proposed_rowno"].ToString();
-            if (string.IsNullOrEmpty(proposed_rowno))
-            {
-                //handling for retiree
-                pcloccode = string.Empty;
-                sancdesg = string.Empty;
-                sancindx = string.Empty;
-            }
-            else if (proposed_rowno.Length == 9)
-            {
-                pcloccode = cloccode;
-                sancdesg = cdesgcode;
-                sancindx = "0";
-            }
-            else
-            {
-                ds2 = OraDBConnection.GetData("select loccode,desgcode,indx from cadre.cadr where rowno=" + proposed_rowno);
-                row2 = ds2.Tables[0].Rows[0];
-                pcloccode = row2["loccode"].ToString();
-                sancdesg = row2["desgcode"].ToString();
-                sancindx = row2["indx"].ToString();
-                ds2.Clear();
-                ds2.Dispose();
-            }
-            eventhistoryid = OraDBConnection.GetScalar("select max(eventhistoryid)+1 from pshr.emphistory");
-
-            if (!string.IsNullOrEmpty(pcloccode))
-            {
-                switch (pcloccode.Substring(0, 3))
-                {
-                    case "103":
-                        pcloccode = "103000000";
-                        break;
-                    case "104":
-                        pcloccode = "104000000";
-                        break;
-                    case "105":
-                        pcloccode = "105000000";
-                        break;
-                    case "106":
-                        pcloccode = "106000000";
-                        break;
-                    case "108":
-                        pcloccode = "108000000";
-                        break;
-                }
-            }
-            //insert into emphistory
-            if (string.IsNullOrEmpty(proposed_rowno))
-            {
-                //in case of retirement
-                sql = string.Format("insert into pshr.emphistory(empid,eventcode,rowno," +
-                                        "eventhistoryid,oonum,odate,status) values " +
-                                        "({0},{1},{2},{3},'{4}','{5}',1)",
-                                        empid, eventcode, rowno, eventhistoryid, oonum, oodate);
-            }
-            else if (proposed_rowno.Length == 9)
-            {
-                //in case of transfer/promotion at Special Locations
-                sql = string.Format("insert into pshr.emphistory(empid,eventcode,desgcode,loccode,rowno," +
-                                        "eventhistoryid, pcloccode,oonum,odate,status) values " +
-                                        "({0},{1},{2},{3},{4},{5},{6},'{7}','{8}',1)",
-                                        empid, eventcode, cdesgcode, cloccode, rowno, eventhistoryid, pcloccode, oonum, oodate);
-            }
-            else
-            {
-                //in case of normal location
-                sql = string.Format("insert into pshr.emphistory(empid,eventcode,desgcode,loccode,rowno," +
-                                        "eventhistoryid, pcloccode,sancdesg,sancindx,oonum,odate,status) values " +
-                                        "({0},{1},{2},{3},{4},{5},{6},{7},{8},'{9}','{10}',1)",
-                                        empid, eventcode, cdesgcode, cloccode, rowno, eventhistoryid, pcloccode, sancdesg, sancindx, oonum, oodate);
-            }
-
-            ret = OraDBConnection.ExecQry(sql);
-            if (ret == false)
-            {
-                Utils.ShowMessageBox(this, string.Format("Unable to add entry for empid {0} in pshr.emphistory", empid));
-                return false;
-            }
-        }
-        return true;
     }
     private void ChangeTables(string empid)
     {
@@ -672,6 +536,7 @@ public partial class frmproposal : System.Web.UI.Page
         bool ret = false;
         DataSet ds;
         rowTypes rowType;
+        int flag_OwnInt = 0;
 
         string oonum = txtOoNum.Text;
         string oodate = txtOoDate.Text;
@@ -680,7 +545,7 @@ public partial class frmproposal : System.Web.UI.Page
 
         //check if any outstanding entry is pending
         string out_count = OraDBConnection.GetScalar("select count(*) from cadre.propcadrmap where "+
-            "status in ('T','P','O') and proposed_rowno is null and propno="+PRONO);
+            "status in ('T','P') and proposed_rowno is null and propno="+PRONO);
         if (out_count != "0")
         {
             Utils.ShowMessageBox(this, "Outstanding entries are pending.");
@@ -706,11 +571,14 @@ public partial class frmproposal : System.Web.UI.Page
             }
             else if (rstatus == "T")
             {
-                eventcode = "36"; //CTRP
-            }
-            else if (rstatus == "O")
-            {
-                eventcode = "37"; //CTRO
+                if (flag_OwnInt == 1)
+                {
+                    eventcode = "37"; //CTRO
+                }
+                else
+                {
+                    eventcode = "36"; //CTRP
+                }
             }
             else if (rstatus.StartsWith("EV_"))
             {
@@ -870,7 +738,7 @@ public partial class frmproposal : System.Web.UI.Page
         string sql = "select m.sno,'" + oonum + "' as oonum1, '" + oodate + "' as oodate1, '" + notes + "' as notes," +
                     "'" + endono + "' as endono, " +
                     ddFSizePrev.SelectedValue + " as fsize, " +
-                    "'" + bignote + "' as bignote, "+
+                    "'" + bignote + "' as bignote, " +
                     "(select count(*) from cadre.propcadrmap where propno = " + propno + ") TotCount, " +
                     "(select count(*) from cadre.propcadrmap where status = 'P' and propno = " + propno + ") PCount, " +
                     " pshr.get_fullname(e.empid) as fullname,to_char(e.empid) as empid,to_char(e.dob,'dd-mm-yyyy') as dob," +
@@ -887,10 +755,10 @@ public partial class frmproposal : System.Web.UI.Page
                     "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode," +
                     " DECODE(m.rowno,0,pshr.get_desg(e.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
                     " DECODE(m.rowno,0,e.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
-                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.remarks,'G' as grp,m.propno, to_char(m.newempid) as newempid, m.status, "+
-                    "m.disp_left, m.disp_right, "+
+                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.sysremarks || m.remarks as remarks, 'G' as grp,m.propno, to_char(m.newempid) as newempid, m.status, " +
+                    "m.disp_left, m.disp_right, " +
                     "pshr.get_soccat(e.empid) as categ " +
-                    "from pshr.empperso e, cadre.propcadrmap m "+
+                    "from pshr.empperso e, cadre.propcadrmap m " +
                     "where e.empid=m.empid and m.status is not null " +
                     " AND M.STATUS NOT IN ('S','V') and m.propno=" + propno +
                     " AND m.cloccode is not null" +
@@ -926,20 +794,13 @@ public partial class frmproposal : System.Web.UI.Page
 
         Utils.DownloadFile(pdfPath);
     }
-    private void Makeproreport(bool save = false)
+    private void Makeproreport()
     {
-        string oonum = "-";
-        string oodate = "-";
         string notes = "1";
         string propno = this.PRONO.ToString();
         string approver = ddApprover.SelectedValue;
 
-        if (save)
-        {
-            oonum = Regex.Escape(txtOoNum.Text);
-            oodate = txtOoDate.Text;
-        }
-        string sql = "select m.sno,'" + oonum + "' as oonum1, '" + oodate + "' as oodate1, '" + notes + "' as notes,"+
+        string sql = "select m.sno,'" + notes + "' as notes," +
                     "'" + approver + "' as approver, " +
                     "'" + ddPropLineMode.SelectedValue + "' as proplinemode, " +
                     "'" + txtPropLine.Text + "' as proplinetext, " +
@@ -947,7 +808,7 @@ public partial class frmproposal : System.Web.UI.Page
                     "'" + txtPropLastLine.Text + "' as proplastlinetext, " +
                     ddFSize.SelectedValue + " as fsize, " +
                     "(select count(*) from cadre.propcadrmap where propno = " + propno + ") TotCount, " +
-                    "(select count(*) from cadre.propcadrmap where status = 'P' and propno = "+propno +") PCount, " +
+                    "(select count(*) from cadre.propcadrmap where status = 'P' and propno = " + propno + ") PCount, " +
                     " pshr.get_fullname(e.empid) as fullname,to_char(e.empid) as empid, to_char(m.newempid) as newempid, to_char(e.dob,'dd-mm-yyyy') as dob," +
                     "pshr.get_post(e.cloccode) as old_work_loc,e.cloccode as old_work_loccode,pshr.get_desg(e.cdesgcode) as old_work_desg," +
                     "e.cdesgcode as old_work_desgcode," +
@@ -962,59 +823,35 @@ public partial class frmproposal : System.Web.UI.Page
                     "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode," +
                     " DECODE(m.rowno,0,pshr.get_desg(e.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
                     " DECODE(m.rowno,0,e.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
-                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.remarks,'G' as grp,m.propno, m.newempid,m.status,m.disp_left, m.disp_right "+
+                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.sysremarks || m.remarks as remarks, 'G' as grp,m.propno, m.newempid,m.status,m.disp_left, m.disp_right " +
                     "from pshr.empperso e, cadre.propcadrmap m where e.empid=m.empid and m.status is not null " +
-                    " AND M.STATUS NOT IN ('S','V') and m.propno=" + propno + 
+                    " AND M.STATUS NOT IN ('S','V') and m.propno=" + propno +
                     " AND m.cloccode is not null" +
                     " order by sno";
 
         System.Data.DataSet ds = OraDBConnection.GetData(sql);
-        string pdfPath;
-        if (save)
-        {
-            pdfPath = Server.MapPath("office_orders\\" + oonum + "-BEG-I" + oodate + ".pdf");
-        }
-        else
-        {
-            pdfPath = Server.MapPath("office_orders\\proposal_" + propno + "_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".pdf");
-        }
+        string pdfPath = Server.MapPath("office_orders\\proposal_" + propno + "_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".pdf");
 
         CrystalReportSource1.ReportDocument.Refresh();
         CrystalReportSource1.Report.FileName = Server.MapPath("Reports\\rptproposal.rpt");
         CrystalReportSource1.ReportDocument.SetDataSource(ds.Tables[0]);
         CrystalReportSource1.DataBind();
-        
-        //System.Data.DataSet dsnotes;
-        //sql = "select * from cadre.notes_proposal_person where ccnum > 0 and proposalno = " + propno + " order by sno";
-        //dsnotes = OraDBConnection.GetData(sql);
-        //CrystalReportSource1.ReportDocument.Subreports["notes"].SetDataSource(dsnotes.Tables[0]);
-        //CrystalReportSource1.DataBind();
-
-        
         CrystalReportSource1.ReportDocument.ExportToDisk(ExportFormatType.PortableDocFormat, pdfPath);
-
         Utils.DownloadFile(pdfPath);
     }
-    private void Makeproreport_pc(bool save = false)
+    private void Makeproreport_pc()
     {
-        string oonum = "-";
-        string oodate = "-";
         string notes = "1";
         string propno = this.PRONO.ToString();
         string approver = ddApprover.SelectedValue;
 
-        if (save)
-        {
-            oonum = Regex.Escape(txtOoNum.Text);
-            oodate = txtOoDate.Text;
-        }
-        string sql = "select m.sno,'" + oonum + "' as oonum1, '" + oodate + "' as oodate1, '" + notes + "' as notes," +
+        string sql = "select m.sno, '" + notes + "' as notes," +
                     "'" + approver + "' as approver, " +
                     "'" + ddPropLineMode.SelectedValue + "' as proplinemode, " +
                     "'" + txtPropLine.Text + "' as proplinetext, " +
                     "'" + ddPropLastLineMode.SelectedValue + "' as proplastlinemode, " +
                     "'" + txtPropLastLine.Text + "' as proplastlinetext, " +
-                    ddFSize.SelectedValue + " as fsize, "+
+                    ddFSize.SelectedValue + " as fsize, " +
                     "(select count(*) from cadre.propcadrmap where propno = " + propno + ") TotCount, " +
                     "(select count(*) from cadre.propcadrmap where status = 'P' and propno = " + propno + ") PCount, " +
                     " pshr.get_fullname(e.empid),to_char(e.empid) as empid,e.dob," +
@@ -1031,37 +868,22 @@ public partial class frmproposal : System.Web.UI.Page
                     "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode," +
                     " DECODE(m.rowno,0,pshr.get_desg(e.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
                     " DECODE(m.rowno,0,e.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
-                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.remarks,m.prvcomment, 'G' as grp,m.propno, m.newempid,m.status,m.disp_left, m.disp_right " +
+                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.sysremarks || m.remarks as remarks, m.prvcomment, 'G' as grp,m.propno, m.newempid,m.status,m.disp_left, m.disp_right " +
                     "from pshr.empperso e, cadre.propcadrmap m where e.empid=m.empid and m.status is not null " +
                     " AND M.STATUS NOT IN ('S','V') and m.propno=" + propno +
                     " AND m.cloccode is not null" +
                     " order by sno";
 
         System.Data.DataSet ds = OraDBConnection.GetData(sql);
-        string pdfPath;
-        if (save)
-        {
-            pdfPath = Server.MapPath("office_orders\\" + oonum + "-BEG-I" + oodate + ".pdf");
-        }
-        else
-        {
-            pdfPath = Server.MapPath("office_orders\\proposal-" + propno + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmssfff") + ".pdf");
-        }
+        string pdfPath = Server.MapPath("office_orders\\proposal_" + propno + "_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".pdf");
 
         CrystalReportSource1.ReportDocument.Refresh();
         CrystalReportSource1.Report.FileName = Server.MapPath("Reports\\rptproposal_pc.rpt");
+
         CrystalReportSource1.ReportDocument.SetDataSource(ds.Tables[0]);
         CrystalReportSource1.DataBind();
-
-        //System.Data.DataSet dsnotes;
-        //sql = "select * from cadre.notes_proposal_person where ccnum > 0 and proposalno = " + propno + " order by sno";
-        //dsnotes = OraDBConnection.GetData(sql);
-        //CrystalReportSource1.ReportDocument.Subreports["notes"].SetDataSource(dsnotes.Tables[0]);
-        //CrystalReportSource1.DataBind();
-
-
         CrystalReportSource1.ReportDocument.ExportToDisk(ExportFormatType.PortableDocFormat, pdfPath);
-
+        CrystalReportSource1.Dispose();
         Utils.DownloadFile(pdfPath);
     }
     private bool ShowInfo(string empid)
@@ -1379,10 +1201,10 @@ public partial class frmproposal : System.Web.UI.Page
             {
                 ddBigNotes.SelectedIndex = ddBigNotes.Items.IndexOf(ddBigNotes.Items.FindByValue(drow["bignote"].ToString()));
             }
+            FillOutstandings();
         }
 
         FillGrid();
-        FillOutstandings();
     }
     protected void txtLocFilter_TextChanged(object sender, EventArgs e)
     {
@@ -1390,6 +1212,10 @@ public partial class frmproposal : System.Web.UI.Page
         //if no such row exists, show message that no such empid is found
         //if filter is anything else then call FindAllLocations function
         string filter = txtLocFilter.Text;
+        if (drpLocs.Items.Count == 0)
+        {
+            return;
+        }
         drpLocs.SelectedIndex = 0;
         if (filter.Length == 6 && new Regex("[1-9][0-9]{5}").IsMatch(filter))
         {
@@ -1433,11 +1259,12 @@ public partial class frmproposal : System.Web.UI.Page
         string prvComment = string.Empty;
         string displeft = txtDispLeft.Text;
         string dispright = txtDispRight.Text;
+        int flag_OwnInt = 0;
 
         //own intereset
         if (cbOwnInterest.Checked)
         {
-            status = "O";
+            flag_OwnInt = 1;
         }
         txtEmpid.Text = "";
         //lblLoc.Text = "";
@@ -1479,7 +1306,7 @@ public partial class frmproposal : System.Web.UI.Page
         }
 
         //check if proposed row is already assigned to someone in this proposal
-        sql = string.Format("select count(*) from cadre.propcadrmap where proposed_rowno='{0}' and propno={1} and empid <> '{2}'", prop_row, PRONO, empid);
+        sql = string.Format("select count(*) from cadre.propcadrmap where proposed_rowno='{0}' and length(proposed_rowno)<9 and propno={1} and empid <> '{2}'", prop_row, PRONO, empid);
         if (OraDBConnection.GetScalar(sql) != "0")
         {
             Utils.ShowMessageBox(this, "The selected proposed row already exists in this proposal");
@@ -1557,13 +1384,13 @@ public partial class frmproposal : System.Web.UI.Page
         {
             sql = string.Format("insert into cadre.propcadrmap(empid, rowno,status, proposed_rowno, cloccode, " +
                                 "cdesgcode, remarks, sno, propno, newempid, last_event, olddesgcode, oldloccode, prvcomment, " +
-                                "disp_left, disp_right) " +
+                                "disp_left, disp_right, FLAG_OWNINT) " +
                                 " values({0}, {1}, '{2}', {3}, {4}," +
                                 "'{5}', '{6}', {7}, {8}, '{9}', '{10}'," +
-                                "{11}, {12}, '{13}', '{14}', '{15}')",
+                                "{11}, {12}, '{13}', '{14}', '{15}',{16})",
                                 empid, cur_row, status, prop_row, cloc,
                                 cdesg, remarks, sno, propno, newEmpid, lastEvent,
-                                olddesgcode, oldloccode, prvComment, displeft, dispright);
+                                olddesgcode, oldloccode, prvComment, displeft, dispright,flag_OwnInt);
             if (OraDBConnection.ExecQry(sql) == false)
             {
                 Utils.ShowMessageBox(this, "Error inserting data in propcadrmap");
@@ -1577,10 +1404,10 @@ public partial class frmproposal : System.Web.UI.Page
             sql = string.Format("update cadre.propcadrmap set status='{0}', proposed_rowno = {1}, cloccode={2}," +
                                 "cdesgcode={3},remarks='{4}',sno={5}, newempid='{6}', last_event={7}, " +
                                 "olddesgcode={8}, oldloccode={9}, prvcomment = '{10}', " +
-                                "disp_left = '{11}', disp_right = '{12}' " +
-                                "where empid={13} and propno={14}",
+                                "disp_left = '{11}', disp_right = '{12}', FLAG_OWNINT={13} " +
+                                "where empid={14} and propno={15}",
                                 status, prop_row, cloc, cdesg, remarks, sno, newEmpid, lastEvent,
-                                olddesgcode, oldloccode, prvComment, displeft, dispright,
+                                olddesgcode, oldloccode, prvComment, displeft, dispright,flag_OwnInt,
                                 empid, propno);
             if (OraDBConnection.ExecQry(sql) == false)
             {
@@ -1608,7 +1435,7 @@ public partial class frmproposal : System.Web.UI.Page
             if (!already_in_propcadrmap)
             {
                 sql = string.Format("insert into cadre.propcadrmap(empid,rowno,propno,status) values({0},{1},{2},'{3}')",
-                    outempid, prop_row, propno, status);
+                    outempid, prop_row, propno,status);
                 if (OraDBConnection.ExecQry(sql) == false)
                 {
                     Utils.ShowMessageBox(this, "Error inserting outstanding entry in propcadrmap");
@@ -1699,20 +1526,9 @@ public partial class frmproposal : System.Web.UI.Page
                 "from cadre.cadr c left outer join cadre.cadrmap cm on c.rowno=cm.rowno where c.rowno = " + rowno;
             System.Data.DataSet ds = OraDBConnection.GetData(sql);
             txtCLoc.Text = ds.Tables[0].Rows[0]["locname"] + "-" + ds.Tables[0].Rows[0]["loccode"];
-            if (ds.Tables[0].Rows[0]["empid"] == DBNull.Value)
-            {
-                if (txtRemarks.Text == "")
-                {
-                    txtRemarks.Text = "i) Against a vacant post";
-                }
-                else
-                {
-                    txtRemarks.Text += Environment.NewLine + "ii) Against a vacant post";
-                }
-            }
         }
 
-        if (hidStatus.Value == "T" || hidStatus.Value == "O")
+        if (hidStatus.Value == "T")
         {
             txtCDesg.Text = lblInfoDesg.Text + "-" + hidWDesgCode.Value;
             //txtCDesg.Text = lbldesg.Text + "-" + lblvaldesg.Text;
@@ -1772,7 +1588,6 @@ public partial class frmproposal : System.Web.UI.Page
                 txtPropLine.Text, PRONO);
             OraDBConnection.ExecQry(sql);
         }
-
         if (ddPropLastLineMode.SelectedIndex == 1)
         {
             sql = string.Format("update cadre.tp_proposals set LASTLINEMODE = 'M', LASTLINETEXT = '{0}' where pno = '{1}'",
@@ -1822,7 +1637,7 @@ public partial class frmproposal : System.Web.UI.Page
             "proposed_rowno as newrowno, cadre.get_mapping_text_from_rowno(proposed_rowno) as newmaptext, " +
             "cloccode as newloccode, pshr.get_org(cloccode) as newloctext, " +
             "cdesgcode as newdesgcode, pshr.get_desg(cdesgcode) as newdesgtext," +
-            "remarks, sno, status, newempid, prvcomment,disp_left, disp_right, i.photo2 as photo " +
+            "remarks, sno, status, newempid, prvcomment,disp_left, disp_right, flag_ownint, i.photo2 as photo " +
             "from cadre.propcadrmap pm left outer join img_pshr.img i on i.empid = pm.empid " +
             "where pm.empid = " + empid + " and propno = " + PRONO;
 
@@ -1863,6 +1678,7 @@ public partial class frmproposal : System.Web.UI.Page
         txtPrvComment.Text = drow["prvcomment"].ToString();
         txtDispLeft.Text = drow["disp_left"].ToString();
         txtDispRight.Text = drow["disp_right"].ToString();
+        cbOwnInterest.Checked = drow["flag_ownint"].ToString() == "1";
         lblInfo.Text = (drow["status"].ToString() == "P" ? "Promote " : "Transfer ") + drow["name"].ToString() + " to:";
     }
     protected void gvProposals_RowDeleting(object sender, GridViewDeleteEventArgs e)
@@ -1947,7 +1763,6 @@ public partial class frmproposal : System.Web.UI.Page
         lblInfo.Text = string.Format("Transfer {0} to:", empid);
         //panProposed.Enabled = true;
         divpropose.Disabled = false;
-        cbOwnInterest.Visible = true;
     }
     protected void btnPromote_Click(object sender, EventArgs e)
     {
@@ -1971,10 +1786,7 @@ public partial class frmproposal : System.Web.UI.Page
         FillAllLocations();
 
         lblInfo.Text = string.Format("Promote {0} to:", empid);
-        txtRemarks.Text = "i) On Promotion";
-        //panProposed.Enabled = true;
         divpropose.Disabled = false;
-        cbOwnInterest.Visible = false;
     }
     protected void ddPropLineMode_SelectedIndexChanged(object sender, EventArgs e)
     {
@@ -2168,7 +1980,7 @@ public partial class frmproposal : System.Web.UI.Page
             int sno;
             int empid;
             string remarks;
-            for (int row = startRow; worksheet.Cells[row, colSno].Value != null && worksheet.Cells[row, colSno].Value != ""; row++)
+            for (int row = startRow; worksheet.Cells[row, colSno].Value != null && worksheet.Cells[row, colSno].Value.ToString() != ""; row++)
             {
                 sno = int.Parse(worksheet.Cells[row, colSno].Value.ToString());
                 empid = int.Parse(worksheet.Cells[row, colEmpid].Value.ToString());
@@ -2200,6 +2012,52 @@ public partial class frmproposal : System.Web.UI.Page
         }
         drpLocs.SelectedIndex = drpLocs.Items.IndexOf(drpLocs.Items.FindByValue(locateRow));
         drpLocs_SelectedIndexChanged(null, null);
+    }
+    protected void btnAutoArrange_Click(object sender, EventArgs e)
+    {
+        string sql;
+        DataSet ds;
+
+        //set serial number
+        sql = string.Format("merge into cadre.propcadrmap u " +
+                            "using (" +
+                              "select empid, row_number() over (order by hecode, empid) rnum " +
+                              "from cadre.propcadrmap pc inner join pshr.mast_desg md on pc.cdesgcode = md.desgcode where propno = {0} " +
+                            ") s " +
+                            "on (u.empid = s.empid and u.propno={0}) " +
+                            "when matched then update set u.sno = s.rnum", PRONO);
+        OraDBConnection.ExecQry(sql);
+
+        //set flags
+        sql = string.Format("select pc.empid, pc.sno, flag_ownint, decode(pc.status,'P',1,0) as flag_promo, nvl2(cm.empid,0,1) as flag_vacant," +
+                            "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND rownum < 2 AND pc2.sno <> pc.sno) as vice_srno " +
+                            "from cadre.propcadrmap pc left outer join cadre.cadrmap cm on pc.proposed_rowno = cm.rowno where propno = {0} order by sno", PRONO);
+        ds = OraDBConnection.GetData(sql);
+        foreach (DataRow drow in ds.Tables[0].Rows)
+        {
+            string sysRemarks = string.Empty;
+            bool flag_ownint = drow["flag_ownint"].ToString() == "1";
+            bool flag_promo = drow["flag_promo"].ToString() == "1";
+            bool flag_vacant = drow["flag_vacant"].ToString() == "1";
+            string vice_srno = drow["vice_srno"].ToString();
+            string empid = drow["empid"].ToString();
+            string sno = drow["sno"].ToString();
+            string newline = Environment.NewLine;
+
+            if (flag_promo)
+                sysRemarks += "* On Promotion" + newline;
+            if (flag_vacant)
+                sysRemarks += "* Against a Vacant Post" + newline;
+            if(!String.IsNullOrWhiteSpace(vice_srno))
+                sysRemarks += "* Vice Sr. No. " + vice_srno + newline;
+            if (flag_ownint)
+                sysRemarks += "* Own Interest " + newline;
+
+            sql = string.Format("update cadre.propcadrmap set sysremarks = '{0}' where empid = '{1}' and propno = '{2}'", sysRemarks, empid, PRONO);
+            OraDBConnection.ExecQry(sql);
+        }
+
+        FillGrid();
     }
     #endregion
 }

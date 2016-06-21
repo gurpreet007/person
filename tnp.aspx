@@ -109,6 +109,8 @@
             </asp:GridView>
         </div>
         <div id="options">
+            <asp:Button Text="Auto Arrange" ID="btnAutoArrange" runat="server" 
+                onclick="btnAutoArrange_Click" />
             <asp:LinkButton ID = "lnkExport" Text="Export Entries" runat="server" 
                 onclick="lnkExport_Click" />
             <asp:FileUpload ID="FileUploader" runat="server" Width="200px" />

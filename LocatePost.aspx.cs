@@ -61,7 +61,10 @@ public partial class LocatePost : System.Web.UI.Page
         ddOrg.DataTextField = "locabb";
         ddOrg.DataValueField = "loccode";
         ddOrg.DataBind();
-        ddOrg.Items.Insert(0, new ListItem("--Select Org--","0"));
+        if (ddOrg.Items.Count > 0)
+        {
+            ddOrg.Items.Insert(0, new ListItem("--Select Org--", "0"));
+        }
         ds.Clear();
         ds.Dispose();
     }
@@ -77,7 +80,10 @@ public partial class LocatePost : System.Web.UI.Page
         ddCircle.DataTextField = "locabb";
         ddCircle.DataValueField = "loccode";
         ddCircle.DataBind();
-        ddCircle.Items.Insert(0, new ListItem("--Select Circle--", "0"));
+        if (ddCircle.Items.Count > 0)
+        {
+            ddCircle.Items.Insert(0, new ListItem("--Select Circle--", "0"));
+        }
         ds.Clear();
         ds.Dispose();
     }
@@ -93,7 +99,10 @@ public partial class LocatePost : System.Web.UI.Page
         ddDiv.DataTextField = "locabb";
         ddDiv.DataValueField = "loccode";
         ddDiv.DataBind();
-        ddDiv.Items.Insert(0, new ListItem("--Select Division--", "0"));
+        if (ddDiv.Items.Count > 0)
+        {
+            ddDiv.Items.Insert(0, new ListItem("--Select Division--", "0"));
+        }
         ds.Clear();
         ds.Dispose();
     }
@@ -109,7 +118,10 @@ public partial class LocatePost : System.Web.UI.Page
         ddSubDiv.DataTextField = "locabb";
         ddSubDiv.DataValueField = "loccode";
         ddSubDiv.DataBind();
-        ddSubDiv.Items.Insert(0, new ListItem("--Select S/Division--", "0"));
+        if (ddSubDiv.Items.Count > 0)
+        {
+            ddSubDiv.Items.Insert(0, new ListItem("--Select S/Division--", "0"));
+        }
         ds.Clear();
         ds.Dispose();
     }
