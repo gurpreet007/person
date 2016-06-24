@@ -757,8 +757,8 @@ public partial class frmproposal : System.Web.UI.Page
                     "m.cloccode as new_work_loccode,pshr.get_desg(m.cdesgcode) as new_work_desg,m.cdesgcode as new_work_desgcode," +
                     "decode(length(m.proposed_rowno),9,pshr.get_post(m.proposed_rowno), cadre.get_org_plants(cadre.get_lcode_rno(m.proposed_rowno))) AS new_pc_loc," +
                     "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode," +
-                    " DECODE(m.rowno,0,pshr.get_desg(e.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
-                    " DECODE(m.rowno,0,e.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
+                    " DECODE(m.proposed_rowno,0,pshr.get_desg(m.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
+                    " DECODE(m.proposed_rowno,0,m.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
                     "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.sysremarks || m.remarks as remarks, 'G' as grp,m.propno, to_char(m.newempid) as newempid, m.status, " +
                     "m.disp_left, m.disp_right, " +
                     "pshr.get_soccat(e.empid) as categ " +
@@ -825,8 +825,8 @@ public partial class frmproposal : System.Web.UI.Page
                     "m.cloccode as new_work_loccode,pshr.get_desg(m.cdesgcode) as new_work_desg,m.cdesgcode as new_work_desgcode," +
                     "decode(length(m.proposed_rowno),9,pshr.get_post(m.proposed_rowno), cadre.get_org_plants(cadre.get_lcode_rno(m.proposed_rowno))) AS new_pc_loc," +
                     "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode," +
-                    " DECODE(m.rowno,0,pshr.get_desg(e.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
-                    " DECODE(m.rowno,0,e.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
+                    " DECODE(m.proposed_rowno,0,pshr.get_desg(m.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
+                    " DECODE(m.proposed_rowno,0,m.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
                     "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.sysremarks || m.remarks as remarks, 'G' as grp,m.propno, m.newempid,m.status,m.disp_left, m.disp_right " +
                     "from pshr.empperso e, cadre.propcadrmap m where e.empid=m.empid and m.status is not null " +
                     " AND M.STATUS NOT IN ('S','V') and m.propno=" + propno +
@@ -870,8 +870,8 @@ public partial class frmproposal : System.Web.UI.Page
                     "m.cloccode as new_work_loccode,pshr.get_desg(m.cdesgcode) as new_work_desg,m.cdesgcode as new_work_desgcode," +
                     "decode(length(m.proposed_rowno),9,pshr.get_post(m.proposed_rowno), cadre.get_org_plants(cadre.get_lcode_rno(m.proposed_rowno))) AS new_pc_loc," +
                     "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode," +
-                    " DECODE(m.rowno,0,pshr.get_desg(e.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
-                    " DECODE(m.rowno,0,e.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
+                    " DECODE(m.proposed_rowno,0,pshr.get_desg(m.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
+                    " DECODE(m.proposed_rowno,0,m.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
                     "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.sysremarks || m.remarks as remarks, m.prvcomment, 'G' as grp,m.propno, m.newempid,m.status,m.disp_left, m.disp_right " +
                     "from pshr.empperso e, cadre.propcadrmap m where e.empid=m.empid and m.status is not null " +
                     " AND M.STATUS NOT IN ('S','V') and m.propno=" + propno +
@@ -2041,7 +2041,8 @@ public partial class frmproposal : System.Web.UI.Page
 
         //set flags
         sql = string.Format("select pc.empid, pc.sno, flag_ownint, decode(pc.status,'P',1,0) as flag_promo, nvl2(cm.empid,0,1) as flag_vacant," +
-                            "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND rownum < 2 AND pc2.sno <> pc.sno) as vice_srno " +
+                            "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND rownum < 2 AND pc2.sno <> pc.sno) as vice_srno, " +
+                            "case when pc.oldloccode=pc.cloccode and pc.cdesgcode = 9056 then 1 else 0 end as already_occ_post "+
                             "from cadre.propcadrmap pc left outer join cadre.cadrmap cm on pc.proposed_rowno = cm.rowno where propno = {0} order by sno", PRONO);
         ds = OraDBConnection.GetData(sql);
         foreach (DataRow drow in ds.Tables[0].Rows)
@@ -2050,6 +2051,7 @@ public partial class frmproposal : System.Web.UI.Page
             bool flag_ownint = drow["flag_ownint"].ToString() == "1";
             bool flag_promo = drow["flag_promo"].ToString() == "1";
             bool flag_vacant = drow["flag_vacant"].ToString() == "1";
+            bool flag_alr_occ = drow["already_occ_post"].ToString() == "1";
             string vice_srno = drow["vice_srno"].ToString();
             string empid = drow["empid"].ToString();
             string sno = drow["sno"].ToString();
@@ -2063,6 +2065,8 @@ public partial class frmproposal : System.Web.UI.Page
                 sysRemarks += "* Vice Sr. No. " + vice_srno + newline;
             if (flag_ownint)
                 sysRemarks += "* Own Interest " + newline;
+            if(flag_alr_occ)
+                sysRemarks += "* Already Occupied Post " + newline;
 
             sql = string.Format("update cadre.propcadrmap set sysremarks = '{0}' where empid = '{1}' and propno = '{2}'", sysRemarks, empid, PRONO);
             OraDBConnection.ExecQry(sql);
