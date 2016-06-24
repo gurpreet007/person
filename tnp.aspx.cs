@@ -38,7 +38,7 @@ public partial class frmproposal : System.Web.UI.Page
         sql = "select a.* from (" +
               "select Sno,decode(status,'T','Transfer','P','Promotion') as Action," +
               "pshr.get_fullname(empid) as Name,EMPID, " +
-              "case when last_event = 17 then 'On Reinstatement' else cadre.get_org_plants(cadre.get_preposting(empid)) end as \"Present Location\", " +
+              "case when last_event = 17 then 'On Reinstatement' else cadre.get_org_plants(oldloccode) end as \"Present Location\", " +
               "disp_left as Left_Display, "+
               "decode(length(proposed_rowno), 9,pshr.get_post(proposed_rowno), "+
               "cadre.get_org_plants(cadre.loccode_from_rowno(proposed_rowno))) as \"Proposed PC Location\", " +
@@ -49,7 +49,7 @@ public partial class frmproposal : System.Web.UI.Page
               " union all " +
               "select Sno,decode(status,'T','Transfer','P','Promotion') as Action," +
               "pshr.get_fullname(empid) as Name,EMPID, " +
-              "case when last_event = 17 then 'On Reinstatement' else cadre.get_org_plants(cadre.get_preposting(empid)) end as \"Present Location\", " +
+              "case when last_event = 17 then 'On Reinstatement' else cadre.get_org_plants(oldloccode) end as \"Present Location\", " +
               "disp_left as Left_Display, " +
               "decode(length(proposed_rowno), 9,pshr.get_post(proposed_rowno), "+
               "cadre.get_org_plants(cadre.loccode_from_rowno(proposed_rowno))) as \"Proposed PC Location\", " +
@@ -534,6 +534,7 @@ public partial class frmproposal : System.Web.UI.Page
     {
         string empid, eventcode, cdesgcode, cloccode, proposed_rowno,oldrowno, newempid;
         string pcloccode, sancdesg, sancindx, sql, rstatus, remDate = string.Empty;
+        string oldLoccode, oldDesgcode;
         bool ret = false;
         DataSet ds;
         rowTypes rowType;
@@ -602,6 +603,8 @@ public partial class frmproposal : System.Web.UI.Page
             oldrowno = row["rowno"].ToString();
             proposed_rowno = row["proposed_rowno"].ToString();
             newempid = row["newempid"].ToString();
+            oldLoccode = row["oldloccode"].ToString();
+            oldDesgcode = row["olddesgcode"].ToString();
             if (string.IsNullOrEmpty(proposed_rowno))
             {
                 //handling for retirement,leave events
@@ -678,9 +681,9 @@ public partial class frmproposal : System.Web.UI.Page
                 DateTime outDate;
                 if (DateTime.TryParse(remDate, out outDate))
                 {
-                    sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode, eventdate) " +
-                    "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}')",
-                    empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, remDate);
+                    sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode, eventdate,oldloccode,olddesgcode, propno) " +
+                    "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}','10')",
+                    empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, remDate, oldLoccode, oldDesgcode, PRONO);
                 }
                 else
                 {
@@ -690,16 +693,16 @@ public partial class frmproposal : System.Web.UI.Page
             }
             else if (rowType == rowTypes.SPECIAL_LOC)
             {
-                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode,newempid) " +
-                   "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}')",
-                   empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid);
+                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode,newempid,oldloccode, olddesgcode, propno) " +
+                   "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}', '{10}')",
+                   empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO);
             }
             else if(rowType == rowTypes.NORMAL)
             {
                 //in case of normal location
-                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, postjoin, eventcode, loccode, desgcode, newempid) " +
-                    "values({0},'{1}','{2}',{3},{4},{5},{6},{7},'{8}')",
-                    empid,oonum,oodate,oldrowno,proposed_rowno,eventcode,cloccode,cdesgcode, newempid);
+                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, postjoin, eventcode, loccode, desgcode, newempid, oldloccode, olddesgcode, propno) " +
+                    "values({0},'{1}','{2}',{3},{4},{5},{6},{7},'{8}','{9}','{10}', '{11}')",
+                    empid, oonum, oodate, oldrowno, proposed_rowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO);
             }
 
             if (sql != string.Empty)
@@ -1218,7 +1221,7 @@ public partial class frmproposal : System.Web.UI.Page
             return;
         }
         drpLocs.SelectedIndex = 0;
-        if (filter.Length == 6 && new Regex("[1-9][0-9]{5}").IsMatch(filter))
+        if (filter.Length == 6 && new Regex("1[0-9]{5}").IsMatch(filter))
         {
             foreach (ListItem litem in drpLocs.Items)
             {
@@ -1226,6 +1229,7 @@ public partial class frmproposal : System.Web.UI.Page
                 {
                     drpLocs.ClearSelection();
                     litem.Selected = true;
+                    drpLocs_SelectedIndexChanged(null, null);
                     return;
                 }
             }
@@ -1882,7 +1886,8 @@ public partial class frmproposal : System.Web.UI.Page
                 "pshr.get_desg(olddesgcode) || '-' || pshr.get_org(oldloccode) as oldloc, " +
                 "pshr.get_desg(CDESGCODE) || '-' || pshr.get_org(cloccode) as newloc," +
                 "decode(status,'P','Promotion','Transfer') as status," +
-                "remarks " +
+                "remarks, " +
+                "prvcomment " +
                 "from cadre.propcadrmap where propno = " + PRONO + " order by sno";
 
         string file = Server.MapPath("office_orders\\entries.xlsx");
@@ -1905,7 +1910,7 @@ public partial class frmproposal : System.Web.UI.Page
             int row = startRow;
 
             worksheet.Cells["A1"].Value = "Entries for Propno: " + PRONO;
-            using (ExcelRange r = worksheet.Cells["A1:G1"])
+            using (ExcelRange r = worksheet.Cells["A1:H1"])
             {
                 r.Merge = true;
                 r.Style.Font.SetFromFont(new Font("Britannic Bold", 22, FontStyle.Italic));
@@ -1921,9 +1926,10 @@ public partial class frmproposal : System.Web.UI.Page
             worksheet.Cells["E4"].Value = "NewLoc";
             worksheet.Cells["F4"].Value = "Status";
             worksheet.Cells["G4"].Value = "Remarks";
-            worksheet.Cells["A4:G4"].Style.Fill.PatternType = ExcelFillStyle.Solid;
-            worksheet.Cells["A4:G4"].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(184, 204, 228));
-            worksheet.Cells["A4:G4"].Style.Font.Bold = true;
+            worksheet.Cells["H4"].Value = "PrvComment";
+            worksheet.Cells["A4:H4"].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            worksheet.Cells["A4:H4"].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(184, 204, 228));
+            worksheet.Cells["A4:H4"].Style.Font.Bold = true;
 
             DataRowCollection drows = OraDBConnection.GetData(sql).Tables[0].Rows;
             int col = 1;
@@ -1946,6 +1952,7 @@ public partial class frmproposal : System.Web.UI.Page
             worksheet.Column(5).Width = 30;
             worksheet.Column(6).Width = 10;
             worksheet.Column(7).Width = 30;
+            worksheet.Column(8).Width = 30;
             worksheet.Row(1).Height = 40;
             xlPackage.Save();
         }
@@ -1978,16 +1985,19 @@ public partial class frmproposal : System.Web.UI.Page
             const int colSno = 1;
             const int colEmpid = 2;
             const int colRemarks = 7;
+            const int colPrvComment = 8;
             int sno;
             int empid;
             string remarks;
+            string prvComment;
+
             for (int row = startRow; worksheet.Cells[row, colSno].Value != null && worksheet.Cells[row, colSno].Value.ToString() != ""; row++)
             {
                 sno = int.Parse(worksheet.Cells[row, colSno].Value.ToString());
                 empid = int.Parse(worksheet.Cells[row, colEmpid].Value.ToString());
                 remarks = worksheet.Cells[row, colRemarks].Value != null ? worksheet.Cells[row, colRemarks].Value.ToString() : "";
-
-                sql = String.Format("update cadre.propcadrmap set sno={0}, remarks = '{1}' where empid = '{2}' and propno = {3}", sno, remarks, empid, PRONO);
+                prvComment = worksheet.Cells[row, colPrvComment].Value != null ? worksheet.Cells[row, colPrvComment].Value.ToString() : "";
+                sql = String.Format("update cadre.propcadrmap set sno = {0}, remarks = '{1}', prvcomment = '{2}' where empid = '{3}' and propno = {4}", sno, remarks, prvComment, empid, PRONO);
                 OraDBConnection.ExecQry(sql);
             }
         }
@@ -2022,7 +2032,7 @@ public partial class frmproposal : System.Web.UI.Page
         //set serial number
         sql = string.Format("merge into cadre.propcadrmap u " +
                             "using (" +
-                              "select empid, row_number() over (order by hecode, empid) rnum " +
+                              "select empid, row_number() over (order by hecode, status desc, empid) rnum " +
                               "from cadre.propcadrmap pc inner join pshr.mast_desg md on pc.cdesgcode = md.desgcode where propno = {0} " +
                             ") s " +
                             "on (u.empid = s.empid and u.propno={0}) " +
