@@ -5,6 +5,8 @@ using System.Web;
 using System.Data;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+using System.Net;
+using System.IO;
 
 public class Utils
 {
@@ -247,5 +249,43 @@ public class Utils
         pg.Response.End();
         dg.Dispose();
         return true;
+    }
+
+    public static bool SendSMS(string mobile, string msg)
+    {
+        bool isSent = false;
+        string strURL = "http://sms6.routesms.com:8080/bulksms/bulksms?" +
+        "username=pspclinternal&password=psc35int&type=0&dlr=1&destination=" + mobile +
+        "&source=PSPCLP&message=" + msg;
+        WebRequest request = HttpWebRequest.Create(strURL);
+        request.Timeout = 25000;
+        string strData;
+
+        WebResponse wr = null;
+        Stream s = null;
+        StreamReader readStream = null;
+        try
+        {
+            wr = (HttpWebResponse)request.GetResponse();
+            s = (Stream)wr.GetResponseStream();
+            readStream = new StreamReader(s);
+
+            strData = readStream.ReadToEnd();
+            if (strData.StartsWith("1701|"))
+            {
+                isSent = true;
+            }
+        }
+        catch
+        {
+            isSent = false;
+        }
+        finally
+        {
+            readStream.Close();
+            s.Close();
+            wr.Close();
+        }
+        return isSent;
     }
 }

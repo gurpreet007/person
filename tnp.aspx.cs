@@ -772,7 +772,7 @@ public partial class frmproposal : System.Web.UI.Page
         string pdfPath;
         if (save)
         {
-            pdfPath = Server.MapPath("office_orders\\" + oonum + "-BEG-I" + oodate + ".pdf");
+            pdfPath = Server.MapPath("office_orders\\" + oonum.Replace("\\","").Replace("/","") + "-BEG-I" + oodate + ".pdf");
         }
         else
         {
@@ -1030,6 +1030,20 @@ public partial class frmproposal : System.Web.UI.Page
         ddBigNotes.DataValueField = "name";
         ddBigNotes.DataBind();
         ddBigNotes.Items.Insert(0, new ListItem("Select Note", ""));
+    }
+    private void SendSMS(string oonum, string oodate)
+    {
+        string sql = "select empid, phonecell from EMPADDR where empid in (select empid from CADRE.PROPCADRMAP where propno = "+PRONO+") and length(phonecell) >= 10";
+        DataSet ds = OraDBConnection.GetData(sql);
+        string msg;
+        foreach (DataRow drow in ds.Tables[0].Rows)
+        {
+            msg = string.Format("There is a change in your posting. Please see Services-I O/o No. {0} Dt. {1}",oonum,oodate);
+            if (Utils.SendSMS(drow["phonecell"].ToString(), msg))
+            {
+                OraDBConnection.ExecQry(string.Format("insert into cadre.smslog values('{0}','{1}',sysdate)", drow["phonecell"].ToString(), msg));
+            }
+        }
     }
     #endregion
 
@@ -1868,6 +1882,7 @@ public partial class frmproposal : System.Web.UI.Page
                 Utils.ShowMessageBox(this, "Error marking propsal as saved");
             }
             btnSave.Enabled = false;
+            SendSMS(txtOoNum.Text, txtOoDate.Text);
             Utils.ShowMessageBox(this, "Order Saved and Implemented");
         }
         else
