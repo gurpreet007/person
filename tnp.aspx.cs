@@ -1036,13 +1036,16 @@ public partial class frmproposal : System.Web.UI.Page
         string sql = "select empid, phonecell from EMPADDR where empid in (select empid from CADRE.PROPCADRMAP where propno = "+PRONO+") and length(phonecell) >= 10";
         DataSet ds = OraDBConnection.GetData(sql);
         string msg;
+        StringBuilder sbNums = new StringBuilder(50*10);
         foreach (DataRow drow in ds.Tables[0].Rows)
         {
-            msg = string.Format("There is a change in your posting. Please see Services-I O/o No. {0} Dt. {1}",oonum,oodate);
-            if (Utils.SendSMS(drow["phonecell"].ToString(), msg))
-            {
-                OraDBConnection.ExecQry(string.Format("insert into cadre.smslog values('{0}','{1}',sysdate)", drow["phonecell"].ToString(), msg));
-            }
+            sbNums.Append(drow["phonecell"].ToString());
+            sbNums.Append(",");
+        }
+        msg = string.Format("There is a change in your posting. Please see Services-I O/o No. {0} Dt. {1}",oonum,oodate);
+        if (libSMSPbGovt.SMS.SendSMS(sbNums.ToString(), msg, true))
+        {
+            OraDBConnection.ExecQry(string.Format("insert into cadre.smslog values('{0}','{1}',sysdate)", sbNums.ToString(), msg));
         }
     }
     #endregion
