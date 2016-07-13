@@ -16,6 +16,8 @@
         #grid {overflow:auto}
         #drpLocs {width:80%;max-width:90%; overflow:hidden}
         #txtPropLine {width:80%; height:40px}
+        #txtOoNum{width:150px;}
+        #txtEndorsNo{width:150px;}
         #lnkExport {margin-left:10px; margin-right:60px}
         #lnkImport {margin-right:10px}
         #locatePost{border-style:solid;border-width:1px}

@@ -537,8 +537,15 @@ public partial class frmproposal : System.Web.UI.Page
         string oldLoccode, oldDesgcode;
         bool ret = false;
         DataSet ds;
+        //DataSet ut_ds;
+        //string ut_status = string.Empty;
+        //string ut_rel_repoff = string.Empty;
+        //string ut_rel_dt_req = string.Empty;
+        //string ut_rel_dt_acc = string.Empty;
+        //string ut_rel_comment = string.Empty;
         rowTypes rowType;
         int flag_OwnInt = 0;
+        string sql_merge = string.Empty;
 
         string oonum = txtOoNum.Text;
         string oodate = txtOoDate.Text;
@@ -668,6 +675,24 @@ public partial class frmproposal : System.Web.UI.Page
             //    OraDBConnection.ExecQry(sql);
             //}
 
+            //sql = string.Empty;
+            ////latest relieving entries ---> save
+            //sql = string.Format("select empid,status,rep_off_rel,date_rel_req, date_rel_accept, " +
+            //    "rel_off_comment from cadre.chargereport where " +
+            //    "oodate = (select max(oodate) from cadre.chargereport where empid = {0}) "+
+            //    "and empid = {0}", empid);
+
+            //ut_ds = OraDBConnection.GetData(sql);
+            //if (ut_ds.Tables[0].Rows.Count == 1)
+            //{
+            //    DataRow drow = ut_ds.Tables[0].Rows[0];
+            //    ut_status = drow["status"].ToString();
+            //    ut_rel_repoff = drow["rep_off_rel"].ToString();
+            //    ut_rel_dt_req = drow["date_rel_req"].ToString();
+            //    ut_rel_dt_acc = drow["date_rel_accept"].ToString();
+            //    ut_rel_comment = drow["rel_off_comment"].ToString();
+            //}
+
             sql = string.Empty;
             if (rowType == rowTypes.LEAVE_RET_EVENT)
             {
@@ -705,9 +730,27 @@ public partial class frmproposal : System.Web.UI.Page
                     empid, oonum, oodate, oldrowno, proposed_rowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO);
             }
 
+            //to handle under transfer cases 
+            //copy relieving info of u/t case into new row 
+            //so that relieving again from same location is avoided
+            sql_merge = string.Format("merge into cadre.chargereport cr1 using " +
+                "(select rep_off_rel, date_rel_req, date_rel_accept, "+
+                "decode(status,'JRS','RRA',status) status, rel_off_comment "+
+                "from cadre.chargereport where oodate = (" +
+                "select max(oodate) from cadre.chargereport where " +
+                "oodate <(select max(oodate) from cadre.chargereport where empid = {0}) " +
+                "and empid={0}) and empid={0}) cr2 " +
+                "ON (cr2.status<>'JRA')" +
+                "WHEN MATCHED THEN UPDATE SET " +
+                "cr1.rep_off_rel=cr2.rep_off_rel, cr1.date_rel_req = cr2.date_rel_req, " +
+                "cr1.date_rel_accept=cr2.date_rel_accept, cr1.status=cr2.status, " +
+                "cr1.rel_off_comment=cr2.rel_off_comment where empid = {0} " +
+                "and oodate = (select max(oodate) from cadre.chargereport where empid={0})");
+
             if (sql != string.Empty)
             {
                 ret = OraDBConnection.ExecQry(sql);
+                OraDBConnection.ExecQry(sql_merge);
             }
             if (ret == false)
             {
@@ -717,7 +760,8 @@ public partial class frmproposal : System.Web.UI.Page
 
             //change the cadrmap, empperso and emphistory tables for this empid
             //keeping fromdate and todate blank
-            ChangeTables(empid);
+            //donot change any tables till Rel-Joining is completed
+            //ChangeTables(empid);
         }
         return true;
     }
