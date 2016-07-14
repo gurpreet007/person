@@ -734,8 +734,8 @@ public partial class frmproposal : System.Web.UI.Page
             //copy relieving info of u/t case into new row 
             //so that relieving again from same location is avoided
             sql_merge = string.Format("merge into cadre.chargereport cr1 using " +
-                "(select rep_off_rel, date_rel_req, date_rel_accept, "+
-                "decode(status,'JRS','RRA',status) status, rel_off_comment "+
+                "(select rep_off_rel, date_rel_req, date_rel_accept, " +
+                "decode(status,'JRS','RRA',status) status, rel_off_comment " +
                 "from cadre.chargereport where oodate = (" +
                 "select max(oodate) from cadre.chargereport where " +
                 "oodate <(select max(oodate) from cadre.chargereport where empid = {0}) " +
@@ -745,7 +745,7 @@ public partial class frmproposal : System.Web.UI.Page
                 "cr1.rep_off_rel=cr2.rep_off_rel, cr1.date_rel_req = cr2.date_rel_req, " +
                 "cr1.date_rel_accept=cr2.date_rel_accept, cr1.status=cr2.status, " +
                 "cr1.rel_off_comment=cr2.rel_off_comment where empid = {0} " +
-                "and oodate = (select max(oodate) from cadre.chargereport where empid={0})");
+                "and oodate = (select max(oodate) from cadre.chargereport where empid={0})", empid);
 
             if (sql != string.Empty)
             {
