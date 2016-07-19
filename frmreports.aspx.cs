@@ -5,6 +5,12 @@ using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Text.RegularExpressions;
+using System.Data.OleDb;
+using OfficeOpenXml;
+using System.IO;
+using System.Drawing;
+using OfficeOpenXml.Style;
+using System.Data;
 
 public partial class frmreports : System.Web.UI.Page
 {
@@ -335,7 +341,6 @@ public partial class frmreports : System.Web.UI.Page
         Response.End();
         dg.Dispose();
     }
-
     private void FillDesgsEngGaz()
     {
         drpDesgs.Items.Clear();
@@ -394,16 +399,41 @@ public partial class frmreports : System.Web.UI.Page
             drpDesgs.DataBind();
         }
     }
-    protected void btnOPList0_Click(object sender, EventArgs e)
+    private bool CreateOpListWorkSheet(string loccode, ExcelWorksheet worksheet)
     {
-        string loccode = drporg.SelectedValue;
+        //string loccode = drporg.SelectedValue;
+        string locname = worksheet.Name;
         string sql = string.Empty;
+        const int POS_HECODE = 15;
+        const int POS_EMPID = 6;
+        const int POS_CIRCLE = 2;
+        const int POS_DIVISION = 3;
+        const int NUM_COLS = 15;
 
-        sql = "SELECT lpad('.',4*(lvl-1),'.') || locname as loc, desgtext||'-'||indx as desg, emp.empid, " +
-                "NVL(pshr.get_fullname(emp.empid),'') as name, emp.dob, pshr.get_qual(emp.empid) qual, " +
-                 "pshr.get_org(cadre.get_since_post(emp.empid)) posted_at, cadre.get_since(emp.empid) since_dt, " +
+        int col = 1;
+        string hecode_val = string.Empty;
+        string empid_val = string.Empty;
+        //merge rows vars
+        string latest_circle = string.Empty;
+        int latest_circle_startrow = 0;
+        int latest_circle_endrow = 0;
+        string latest_division = string.Empty;
+        int latest_division_startrow = 0;
+        int latest_division_endrow = 0;
+        //end merge rows vars
+
+        const int startRow = 5;
+        int row = startRow;
+
+        btnOPList0.Enabled = false;
+        sql = "SELECT " +
+                "pshr.get_org_abb(get_repcode(loccode,'Z')) as Zone, pshr.get_org_abb(get_repcode(loccode,'C')) as Circle," +
+                "pshr.get_org_abb(get_repcode(loccode,'D')) as Division, pshr.get_org_abb(get_repcode(loccode,'S')) as SubDivision," +
+                "desgtext||'-'||indx as desg, emp.empid, " +
+                "NVL(pshr.get_fullname(emp.empid),'') as name, to_char(emp.dob,'dd-Mon-yyyy') as dob, pshr.get_qual(emp.empid) qual, " +
+                 "pshr.get_org_abb(cadre.get_since_post(emp.empid)) posted_at, to_char(cadre.get_since(emp.empid),'dd-Mon-yyyy') since_dt, " +
                  "round((sysdate - cadre.get_since(emp.empid))/365.242, 2) span, " +
-                 "pshr.get_retddate(emp.empid) DoR, round((pshr.get_retddate(emp.empid)-sysdate)/365.242, 2) Time_To_Ret " +
+                 "to_char(pshr.get_retddate(emp.empid),'dd-Mon-yyyy') DoR, round((pshr.get_retddate(emp.empid)-sysdate)/365.242, 2) Time_To_Ret,hecode " +
                 "FROM " +
                   "(SELECT * " +
                   "FROM " +
@@ -415,7 +445,7 @@ public partial class frmreports : System.Web.UI.Page
                       "INNER JOIN " +
                         "(SELECT rownum AS rnum_ml,          level        AS lvl,          loccode,          locname " +
                         "FROM pshr.mast_loc " +
-                          "CONNECT BY prior loccode=locrep " +
+                          "CONNECT BY loctype<>20 and prior loccode=locrep " +
                           "START WITH loccode      = " + loccode +
                         ") ml " +
                       "ON c.loccode      = ml.loccode " +
@@ -433,23 +463,286 @@ public partial class frmreports : System.Web.UI.Page
                 "ON emp.empid = postmap.empid " +
                 "ORDER BY rno1";
 
-        System.Data.DataSet ds = OraDBConnection.GetData(sql);
-        DataGrid dg = new DataGrid();
-        dg.DataSource = ds;
-        dg.DataBind();
-        Response.AddHeader("content-disposition", "attachment;filename=oplist.xls");
-        Response.Charset = "";
-        Response.ContentType = "application/vnd.xls";
-        System.IO.StringWriter stringwrite = new System.IO.StringWriter();
-        System.Web.UI.HtmlTextWriter htmlwrite = new System.Web.UI.HtmlTextWriter(stringwrite);
-        //htmlwrite.WriteLine("TITLE");
-        dg.RenderControl(htmlwrite);
-        Response.Write(stringwrite.ToString());
-        Response.End();
-        dg.Dispose();
+        
+
+        // get handle to the existing worksheet
+        //ExcelWorksheet worksheet;
+
+        if (worksheet == null)
+            return false;
+
+        //main header
+        worksheet.Cells["A1"].Value = "Oplist for " + locname;
+        using (ExcelRange r = worksheet.Cells["A1:G1"])
+        {
+            r.Merge = true;
+            r.Style.Font.SetFromFont(new Font("Britannic Bold", 22, FontStyle.Italic));
+            r.Style.Font.Color.SetColor(Color.White);
+            r.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.CenterContinuous;
+            r.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+            r.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(23, 55, 93));
+        }
+
+        //headings
+        worksheet.Cells["A4"].Value = "Zone";
+        worksheet.Cells["B4"].Value = "Circle";
+        worksheet.Cells["C4"].Value = "Division";
+        worksheet.Cells["D4"].Value = "SubDivision";
+        worksheet.Cells["E4"].Value = "Desg";
+        worksheet.Cells["F4"].Value = "Empid";
+        worksheet.Cells["G4"].Value = "Name";
+        worksheet.Cells["H4"].Value = "DOB";
+        worksheet.Cells["I4"].Value = "Qual";
+        worksheet.Cells["J4"].Value = "Posting";
+        worksheet.Cells["K4"].Value = "Since";
+        worksheet.Cells["L4"].Value = "Span";
+        worksheet.Cells["M4"].Value = "DOR";
+        worksheet.Cells["N4"].Value = "ToR";
+        worksheet.Cells["O4"].Value = "HC";
+        worksheet.Cells["A4:O4"].Style.Fill.PatternType = ExcelFillStyle.Solid;
+        worksheet.Cells["A4:O4"].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(184, 204, 228));
+        worksheet.Cells["A4:O4"].Style.Font.Bold = true;
+
+        //actual data rows
+        DataRowCollection drows = OraDBConnection.GetData(sql).Tables[0].Rows;
+        if (drows.Count == 0)
+            return false;
+
+        foreach (DataRow drow in drows)
+        {
+            col = 1;
+            foreach (object item in drow.ItemArray)
+            {
+                if (item != null)
+                    worksheet.Cells[row, col].Value = item;
+                col++;
+            }
+            hecode_val = worksheet.Cells[row, POS_HECODE].Value.ToString();
+            empid_val = worksheet.Cells[row, POS_EMPID].Value.ToString();
+            //merge circle rows
+            if (row == startRow)
+            {
+                latest_circle = worksheet.Cells[row, POS_CIRCLE].Value.ToString();
+                latest_circle_startrow = row;
+            }
+            else if (latest_circle != worksheet.Cells[row, POS_CIRCLE].Value.ToString())
+            {
+                //set end row
+                latest_circle_endrow = row - 1;
+
+                if (!string.IsNullOrWhiteSpace(latest_circle))
+                {
+                    //merge cols
+                    worksheet.Cells[latest_circle_startrow, POS_CIRCLE, latest_circle_endrow, POS_CIRCLE].Merge = true;
+                    worksheet.Cells[latest_circle_startrow, POS_CIRCLE, latest_circle_endrow, POS_CIRCLE].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                }
+                //set new latest_circle
+                latest_circle = worksheet.Cells[row, POS_CIRCLE].Value.ToString();
+                //reinit startrow
+                latest_circle_startrow = row;
+            }
+            //end merge circle rows
+
+            //merge div rows
+            if (row == startRow)
+            {
+                latest_division = worksheet.Cells[row, POS_DIVISION].Value.ToString();
+                latest_division_startrow = row;
+            }
+            else if (latest_division != worksheet.Cells[row, POS_DIVISION].Value.ToString())
+            {
+                //set end row
+                latest_division_endrow = row - 1;
+                if (!string.IsNullOrWhiteSpace(latest_division))
+                {
+                    //merge cols
+                    worksheet.Cells[latest_division_startrow, POS_DIVISION, latest_division_endrow, POS_DIVISION].Merge = true;
+                    worksheet.Cells[latest_division_startrow, POS_DIVISION, latest_division_endrow, POS_DIVISION].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                }
+                //set new latest_div
+                latest_division = worksheet.Cells[row, POS_DIVISION].Value.ToString();
+                //reinit startrow
+                latest_division_startrow = row;
+            }
+            //end merge div rows
+
+            if (hecode_val == "1" || hecode_val == "2")
+            {
+                ExcelRange r = worksheet.Cells[row, 1, row, NUM_COLS];
+                r.Style.Font.SetFromFont(new Font("Britannic Bold", 10, FontStyle.Regular));
+                r.Style.Font.Color.SetColor(Color.Red);
+            }
+            else if (hecode_val == "3" || hecode_val == "4")
+            {
+                ExcelRange r = worksheet.Cells[row, 1, row, NUM_COLS];
+                r.Style.Font.SetFromFont(new Font("Britannic Bold", 10, FontStyle.Regular));
+                r.Style.Font.Color.SetColor(Color.Blue);
+            }
+            else if (hecode_val == "5" || hecode_val == "6")
+            {
+                ExcelRange r = worksheet.Cells[row, 1, row, NUM_COLS];
+                r.Style.Font.SetFromFont(new Font("Britannic Bold", 10, FontStyle.Regular));
+                r.Style.Font.Color.SetColor(Color.Magenta);
+            }
+            else if (hecode_val == "7" || hecode_val == "8" || hecode_val == "9")
+            {
+                ExcelRange r = worksheet.Cells[row, 1, row, NUM_COLS];
+                r.Style.Font.SetFromFont(new Font("Britannic Bold", 10, FontStyle.Regular));
+                r.Style.Font.Color.SetColor(Color.Black);
+            }
+
+            if (string.IsNullOrWhiteSpace(empid_val))
+            {
+                ExcelRange r = worksheet.Cells[row, 5, row, NUM_COLS];
+                r.Style.Font.SetFromFont(new Font("Britannic Bold", 10, FontStyle.Regular));
+                r.Style.Font.Color.SetColor(Color.Purple);
+            }
+
+            row++;
+        }
+        //merge last set of circle
+        //set end row
+        latest_circle_endrow = row - 1;
+        //merge cols
+        if (!string.IsNullOrWhiteSpace(latest_circle))
+        {
+            worksheet.Cells[latest_circle_startrow, POS_CIRCLE, latest_circle_endrow, POS_CIRCLE].Merge = true;
+        }
+
+        //merge last set of division
+        //set end row
+        latest_division_endrow = row - 1;
+        //merge cols
+        if (!string.IsNullOrWhiteSpace(latest_division))
+        {
+            worksheet.Cells[latest_division_startrow, POS_DIVISION, latest_division_endrow, POS_DIVISION].Merge = true;
+        }
+
+        //Merge Zone Column
+        worksheet.Cells["A5:A" + (row - 1)].Merge = true;
+        worksheet.Cells["A5:A" + (row - 1)].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+
+        //zone
+        worksheet.Column(1).Width = 25;
+        //circle
+        worksheet.Column(2).Width = 25;
+        //div
+        worksheet.Column(3).Width = 25;
+        //subdiv
+        worksheet.Column(4).Width = 30;
+        //desg
+        worksheet.Column(5).Width = 30;
+        //empid
+        worksheet.Column(6).Width = 7;
+        //name
+        worksheet.Column(7).Width = 20;
+        //dob
+        worksheet.Column(8).Width = 10;
+        //qual
+        worksheet.Column(9).Width = 15;
+        //posting
+        worksheet.Column(10).Width = 30;
+        //since
+        worksheet.Column(11).Width = 10;
+        //span
+        worksheet.Column(12).Width = 5;
+        //dor
+        worksheet.Column(13).Width = 10;
+        //ToR
+        worksheet.Column(14).Width = 5;
+        //hecode
+        worksheet.Column(15).Width = 3;
+
+        worksheet.Row(1).Height = 40;
+
+        worksheet.Column(1).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(2).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(3).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(4).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(5).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(6).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(7).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(8).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(9).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(10).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(11).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(12).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(13).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(14).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(15).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        return true;
     }
+    private void TestOPList()
+    {
+        string file = Server.MapPath("office_orders\\auto_oplist.xlsx");
+        bool retVal;
+        if (File.Exists(file)) File.Delete(file);
+        FileInfo newFile = new FileInfo(file);
+        ExcelWorksheet sheet;
+        ExcelWorksheet origSheet;
+        using (ExcelPackage xlPackage = new ExcelPackage(newFile))
+        {
+            sheet = xlPackage.Workbook.Worksheets.Add("one");
+            sheet.Cells[1, 1, 10, 10].Value = "1";
+            sheet = xlPackage.Workbook.Worksheets.Add("two");
+            sheet.Cells[1, 1, 10, 10].Value = "2";
+            sheet = xlPackage.Workbook.Worksheets.Add("three");
+            origSheet = xlPackage.Workbook.Worksheets[1];
+            sheet.Cells[1, 1, 10, 10].Value = origSheet.Cells[1, 1, 10, 10].Value;
+            origSheet = xlPackage.Workbook.Worksheets[2];
+            sheet.Cells[11, 1, 20, 10].Value = origSheet.Cells[1, 1, 10, 10].Value;
+            xlPackage.Save();
+        }
+        btnOPList0.Enabled = true;
+        Utils.DownloadFile(file, true, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
+    protected void btnOPList0_Click(object sender, EventArgs e)
+    {
+        //TestOPList();
+        //return;
+        string file = Server.MapPath("office_orders\\auto_oplist.xlsx");
+        string sql = "select loccode,locabb from pshr.mast_loc where loccode like '___000000' and aloc=1 and loctype in (11,20) order by locabb";
+        DataSet ds = OraDBConnection.GetData(sql);
+        bool retVal;
+        if (File.Exists(file)) File.Delete(file);
+        FileInfo newFile = new FileInfo(file);
+        ExcelWorksheet sheet;
+        const int NUM_COLS=15;
 
+        using (ExcelPackage xlPackage = new ExcelPackage(newFile))
+        {
+            foreach (DataRow drow in ds.Tables[0].Rows)
+            {
+                sheet = xlPackage.Workbook.Worksheets.Add(drow["locabb"].ToString());
+                retVal = CreateOpListWorkSheet(drow["loccode"].ToString(), sheet);
+                if (!retVal)
+                {
+                    xlPackage.Workbook.Worksheets.Delete(sheet);
+                }
+            }
+            
+            //combined sheet
+            ExcelWorksheet combined = xlPackage.Workbook.Worksheets.Add("Combined");
+            ExcelWorksheet origSheet;
+            
+            //headings
+            xlPackage.Workbook.Worksheets[1].Cells[4, 1, 4, NUM_COLS].Copy(combined.Cells[1,1]);
 
+            //sheets loop
+            for (int i = 1, currRow = 2; i <= xlPackage.Workbook.Worksheets.Count - 1; i++)
+            {
+                origSheet = xlPackage.Workbook.Worksheets[i];
+                for (int r = 5; origSheet.Cells[r, 1].Value != null; r++, currRow++)
+                {
+                    origSheet.Cells[r, 1, r, NUM_COLS].Copy(combined.Cells[currRow, 1]);
+                }
+            }
+
+            xlPackage.Save();
+        }
+        btnOPList0.Enabled = true;
+        Utils.DownloadFile(file, true, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
     protected void btnAllOO_Click(object sender, EventArgs e)
     {
         string empid = txtempid.Text;

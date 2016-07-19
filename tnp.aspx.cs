@@ -871,7 +871,8 @@ public partial class frmproposal : System.Web.UI.Page
                     "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode," +
                     " DECODE(m.proposed_rowno,0,pshr.get_desg(m.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
                     " DECODE(m.proposed_rowno,0,m.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
-                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.sysremarks || m.remarks as remarks, 'G' as grp,m.propno, m.newempid,m.status,m.disp_left, m.disp_right " +
+                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, pshr.get_soccat(e.empid) as categ," +
+                    "m.sysremarks || m.remarks as remarks, 'G' as grp,m.propno, m.newempid,m.status,m.disp_left, m.disp_right " +
                     "from pshr.empperso e, cadre.propcadrmap m where e.empid=m.empid and m.status is not null " +
                     " AND M.STATUS NOT IN ('S','V') and m.propno=" + propno +
                     " AND m.cloccode is not null" +
@@ -916,7 +917,8 @@ public partial class frmproposal : System.Web.UI.Page
                     "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode," +
                     " DECODE(m.proposed_rowno,0,pshr.get_desg(m.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
                     " DECODE(m.proposed_rowno,0,m.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
-                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.sysremarks || m.remarks as remarks, m.prvcomment, 'G' as grp,m.propno, m.newempid,m.status,m.disp_left, m.disp_right " +
+                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, pshr.get_soccat(e.empid) as categ, "+
+                    "m.sysremarks || m.remarks as remarks, m.prvcomment, 'G' as grp,m.propno, m.newempid,m.status,m.disp_left, m.disp_right " +
                     "from pshr.empperso e, cadre.propcadrmap m where e.empid=m.empid and m.status is not null " +
                     " AND M.STATUS NOT IN ('S','V') and m.propno=" + propno +
                     " AND m.cloccode is not null" +
@@ -1091,6 +1093,16 @@ public partial class frmproposal : System.Web.UI.Page
         {
             OraDBConnection.ExecQry(string.Format("insert into cadre.smslog values('{0}','{1}',sysdate)", sbNums.ToString(), msg));
         }
+    }
+    private void HandleUnderTransfer(string empid)
+    {
+        string sql = string.Empty;
+        string ut_msg = string.Empty;
+        sql = string.Format("select pshr.get_desg(desgcode) || ' u/t ' || pshr.get_org(loccode) from cadre.chargereport where empid = {0} and " +
+                    "oodate = (select max(oodate) from cadre.chargereport where empid = {0}) and " +
+                    "(status is null or status in ('RRS','RRA','JRS'))", empid);
+        ut_msg = OraDBConnection.GetScalar(sql).ToString();
+        txtDispLeft.Text = ut_msg;
     }
     #endregion
 
@@ -1825,6 +1837,7 @@ public partial class frmproposal : System.Web.UI.Page
         ds.Dispose();
 
         FillAllLocations();
+        HandleUnderTransfer(empid);
 
         lblInfo.Text = string.Format("Transfer {0} to:", empid);
         //panProposed.Enabled = true;
