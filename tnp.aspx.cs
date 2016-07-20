@@ -1083,6 +1083,7 @@ public partial class frmproposal : System.Web.UI.Page
         DataSet ds = OraDBConnection.GetData(sql);
         string msg;
         StringBuilder sbNums = new StringBuilder(50*10);
+        bool hasPromotion = !(OraDBConnection.GetScalar(string.Format("select count(*) from cadre.chargereport where eventcode=28 and oonum='{0}'", oonum)) == "0");
         foreach (DataRow drow in ds.Tables[0].Rows)
         {
             sbNums.Append(drow["phonecell"].ToString());
@@ -1093,6 +1094,13 @@ public partial class frmproposal : System.Web.UI.Page
         {
             OraDBConnection.ExecQry(string.Format("insert into cadre.smslog values('{0}','{1}',sysdate)", sbNums.ToString(), msg));
         }
+
+        //send info message to directors
+        string dir_nums = "9646200035,9646200037,9646200026,9646200031,9646200054";
+        //string dir_nums = "9646111018,9646119386,9646119107";
+        string dir_msg = string.Format("Respected Sir,\nO/O No. {0} Dated: {1} has been issued regarding {2}. Please visit www.pspcl.in for details.\nThanks",
+            oonum, oodate, (hasPromotion?"Promotions, Posting and Transfer":"Posting and Transfer"));
+        libSMSPbGovt.SMS.SendSMS(dir_nums, dir_msg, true);
     }
     private void HandleUnderTransfer(string empid)
     {

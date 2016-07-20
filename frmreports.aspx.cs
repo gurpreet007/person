@@ -408,7 +408,7 @@ public partial class frmreports : System.Web.UI.Page
         const int POS_EMPID = 6;
         const int POS_CIRCLE = 2;
         const int POS_DIVISION = 3;
-        const int NUM_COLS = 15;
+        const int NUM_COLS = 16;
 
         int col = 1;
         string hecode_val = string.Empty;
@@ -429,17 +429,19 @@ public partial class frmreports : System.Web.UI.Page
         sql = "SELECT " +
                 "pshr.get_org_abb(get_repcode(loccode,'Z')) as Zone, pshr.get_org_abb(get_repcode(loccode,'C')) as Circle," +
                 "pshr.get_org_abb(get_repcode(loccode,'D')) as Division, pshr.get_org_abb(get_repcode(loccode,'S')) as SubDivision," +
-                "desgtext||'-'||indx as desg, emp.empid, " +
-                "NVL(pshr.get_fullname(emp.empid),'') as name, to_char(emp.dob,'dd-Mon-yyyy') as dob, pshr.get_qual(emp.empid) qual, " +
+                "desgtext||'-'||indx as desg, nvl(emp.empid,0), " +
+                "NVL(pshr.get_fullname(emp.empid),'Vacant') as name, to_char(emp.dob,'dd-Mon-yyyy') as dob, pshr.get_qual(emp.empid) qual, " +
                  "pshr.get_org_abb(cadre.get_since_post(emp.empid)) posted_at, to_char(cadre.get_since(emp.empid),'dd-Mon-yyyy') since_dt, " +
                  "round((sysdate - cadre.get_since(emp.empid))/365.242, 2) span, " +
-                 "to_char(pshr.get_retddate(emp.empid),'dd-Mon-yyyy') DoR, round((pshr.get_retddate(emp.empid)-sysdate)/365.242, 2) Time_To_Ret,hecode " +
+                 "to_char(pshr.get_retddate(emp.empid),'dd-Mon-yyyy') DoR, "+
+                 "round((pshr.get_retddate(emp.empid)-sysdate)/365.242, 2) Time_To_Ret, hecode, "+
+                 "decode(branch,4, 'Civil',99,'Not Known',88,'Not Relevent', 'Electrical') as Branch " +
                 "FROM " +
                   "(SELECT * " +
                   "FROM " +
                     "(SELECT rownum AS rno1,      posts.* " +
                     "FROM " +
-                      "(SELECT c.loccode,        c.desgcode,        c.indx,        c.rowno,        ml.lvl,        ml.rnum_ml,        ml.locname,        md.hecode,        md.desgtext " +
+                      "(SELECT c.loccode, c.desgcode, c.indx, c.rowno, ml.lvl, ml.rnum_ml, ml.locname, md.hecode, md.desgtext,c.branch " +
                       "FROM pshr.mast_desg md, " +
                         "cadre.cadr c " +
                       "INNER JOIN " +
@@ -499,9 +501,10 @@ public partial class frmreports : System.Web.UI.Page
         worksheet.Cells["M4"].Value = "DOR";
         worksheet.Cells["N4"].Value = "ToR";
         worksheet.Cells["O4"].Value = "HC";
-        worksheet.Cells["A4:O4"].Style.Fill.PatternType = ExcelFillStyle.Solid;
-        worksheet.Cells["A4:O4"].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(184, 204, 228));
-        worksheet.Cells["A4:O4"].Style.Font.Bold = true;
+        worksheet.Cells["P4"].Value = "Branch";
+        worksheet.Cells["A4:P4"].Style.Fill.PatternType = ExcelFillStyle.Solid;
+        worksheet.Cells["A4:P4"].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(184, 204, 228));
+        worksheet.Cells["A4:P4"].Style.Font.Bold = true;
 
         //actual data rows
         DataRowCollection drows = OraDBConnection.GetData(sql).Tables[0].Rows;
@@ -591,12 +594,12 @@ public partial class frmreports : System.Web.UI.Page
                 r.Style.Font.Color.SetColor(Color.Black);
             }
 
-            if (string.IsNullOrWhiteSpace(empid_val))
-            {
-                ExcelRange r = worksheet.Cells[row, 5, row, NUM_COLS];
-                r.Style.Font.SetFromFont(new Font("Britannic Bold", 10, FontStyle.Regular));
-                r.Style.Font.Color.SetColor(Color.Purple);
-            }
+            //if (string.IsNullOrWhiteSpace(empid_val))
+            //{
+            //    ExcelRange r = worksheet.Cells[row, 5, row, NUM_COLS];
+            //    r.Style.Font.SetFromFont(new Font("Britannic Bold", 10, FontStyle.Regular));
+            //    r.Style.Font.Color.SetColor(Color.Purple);
+            //}
 
             row++;
         }
@@ -652,6 +655,8 @@ public partial class frmreports : System.Web.UI.Page
         worksheet.Column(14).Width = 5;
         //hecode
         worksheet.Column(15).Width = 3;
+        //branch
+        worksheet.Column(16).Width = 12;
 
         worksheet.Row(1).Height = 40;
 
@@ -670,6 +675,7 @@ public partial class frmreports : System.Web.UI.Page
         worksheet.Column(13).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
         worksheet.Column(14).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
         worksheet.Column(15).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        worksheet.Column(16).Style.VerticalAlignment = ExcelVerticalAlignment.Center;
         return true;
     }
     private void TestOPList()
@@ -707,7 +713,7 @@ public partial class frmreports : System.Web.UI.Page
         if (File.Exists(file)) File.Delete(file);
         FileInfo newFile = new FileInfo(file);
         ExcelWorksheet sheet;
-        const int NUM_COLS=15;
+        const int NUM_COLS=16;
 
         using (ExcelPackage xlPackage = new ExcelPackage(newFile))
         {
@@ -814,5 +820,37 @@ public partial class frmreports : System.Web.UI.Page
 
         CrystalReportSource1.ReportDocument.ExportToDisk(CrystalDecisions.Shared.ExportFormatType.PortableDocFormat, pdfPath);
         Utils.DownloadFile(pdfPath);
+    }
+    protected void btnVacancy_Click(object sender, EventArgs e)
+    {
+        string sql = string.Empty;
+
+        sql = "select pshr.get_org_abb(GET_REPCODE(loccode,'Z')) as Zone, pshr.get_org(loccode) loc, pshr.get_desg(desgcode) desg, indx " +
+                "from cadre.cadr natural join pshr.mast_desg " +
+                "where servcode=30 and gazcode=10 and rowno not in (select rowno from cadre.cadrmap)" +
+                "order by hecode, loccode";
+
+        Utils.DownloadXLS(sql, "vacancy_list.xls", this);
+    }
+    protected void btnAOOSummary_Click(object sender, EventArgs e)
+    {
+        string sql = string.Empty;
+        string empid = txtempid.Text;
+
+        if (string.IsNullOrWhiteSpace(empid))
+        {
+            return;
+        }
+        sql = "select cr.empid, pshr.get_fullname(cr.empid) as name, cr.oonum,cr.oodate, " +
+                "cadre.get_mapping_text_from_rowno(cr.postrel) as postrel, " +
+                "cadre.get_mapping_text_from_rowno(cr.postjoin) as postjoin," +
+                "pshr.get_org(cr.loccode) wloc, pshr.get_desg(cr.desgcode) wdesg," +
+                "decode(cr.eventcode, 36, 'Trans_Pub',37,'Trans_Own',28, 'Pro') as event,cr.status," +
+                "remarks,sysremarks, prvcomment " +
+                "from cadre.propcadrmap pcm inner join cadre.tp_proposals tpp on pcm.propno = tpp.pno " +
+                "inner join cadre.chargereport cr on cr.empid= pcm.empid and cr.oonum=tpp.oonum " +
+                "where pcm.empid in (" + empid + ")" +
+                "order by empid, oodate";
+        Utils.DownloadXLS(sql, "off_order_summary" + empid + ".xls", this);
     }
 }

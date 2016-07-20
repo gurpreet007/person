@@ -53,6 +53,8 @@
             </td>
             <td class="style4">
                 <asp:TextBox ID="txtempid" runat="server" Height="22px" Width="210px"></asp:TextBox>
+                <asp:Button ID="btnAOOSummary" runat="server" onclick="btnAOOSummary_Click" 
+                    Text="All OO Summary" />
             </td>
             <td>
                 &nbsp;</td>
@@ -163,6 +165,16 @@
             <td class="style2">
                 &nbsp;</td>
             <td class="style5">
+                &nbsp;</td>
+            <td class="style4">
+                &nbsp;</td>
+            <td>
+                &nbsp;</td>
+        </tr>
+        <tr>
+            <td class="style2">
+                &nbsp;</td>
+            <td class="style5">
                 <asp:Button ID="btnshow" runat="server" Text="Show Record" 
                     onclick="btnshow_Click" />
             </td>
@@ -232,6 +244,18 @@
             <td class="style4">
                 <asp:Button ID="btnOPList0" runat="server" CausesValidation="False" 
                     onclick="btnOPList0_Click" Text="Generate OP List" />
+            </td>
+            <td>
+                &nbsp;</td>
+        </tr>
+        <tr>
+            <td class="style2" align="right">
+                &nbsp;</td>
+            <td class="style5">
+                &nbsp;</td>
+            <td class="style4">
+                <asp:Button ID="btnVacancy" runat="server" onclick="btnVacancy_Click" 
+                    Text="Vacancy List" Width="152px" />
             </td>
             <td>
                 &nbsp;</td>
