@@ -853,4 +853,9 @@ public partial class frmreports : System.Web.UI.Page
                 "order by empid, oodate";
         Utils.DownloadXLS(sql, "off_order_summary" + empid + ".xls", this);
     }
+    protected void lnkLocatePost_Click(object sender, EventArgs e)
+    {
+        string newWin = "window.open('LocatePost.aspx');";
+        ClientScript.RegisterStartupScript(this.GetType(), "pop", newWin, true);
+    }
 }

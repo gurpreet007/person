@@ -1096,8 +1096,8 @@ public partial class frmproposal : System.Web.UI.Page
         }
 
         //send info message to directors
-        string dir_nums = "9646200035,9646200037,9646200026,9646200031,9646200054";
-        //string dir_nums = "9646111018,9646119386,9646119107";
+        //string dir_nums = "9646200035,9646200037,9646200026,9646200031,9646200054";
+        string dir_nums = "9646111018,9646119386,9646119107";
         string dir_msg = string.Format("Respected Sir,\nO/O No. {0} Dated: {1} has been issued regarding {2}. Please visit www.pspcl.in for details.\nThanks",
             oonum, oodate, (hasPromotion?"Promotions, Posting and Transfer":"Posting and Transfer"));
         libSMSPbGovt.SMS.SendSMS(dir_nums, dir_msg, true);

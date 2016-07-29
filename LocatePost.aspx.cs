@@ -134,7 +134,7 @@ public partial class LocatePost : System.Web.UI.Page
         lblLoccode.Text = loccode;
         sql = String.Format("select "+
             "pshr.get_desg(c.desgcode) || '-' || c.indx || ' at ' || "+
-            "pshr.get_org(loccode) || nvl2(cm.empid,' (' || cm.empid || ') ','') as desg, c.rowno " +
+            "pshr.get_org(loccode) || nvl2(cm.empid,' (' || cm.empid || ', ' || pshr.get_fullname(empid) || ') ','') as desg, c.rowno " +
             "from cadre.cadr c inner join pshr.mast_desg m on c.desgcode = m.desgcode " +
             "left outer join cadre.cadrmap cm on c.rowno = cm.rowno " +
             "where c.loccode = '{0}' and c.hia=0 and " +

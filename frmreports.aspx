@@ -260,6 +260,18 @@
             <td>
                 &nbsp;</td>
         </tr>
+        <tr>
+            <td class="style2" align="right">
+                &nbsp;</td>
+            <td class="style5">
+                &nbsp;</td>
+            <td class="style4">
+            <asp:LinkButton ID="lnkLocatePost" Text="Locate Post" runat="server" 
+                    onclick="lnkLocatePost_Click" />
+            </td>
+            <td>
+                &nbsp;</td>
+        </tr>
     </table>
     <br />
 
