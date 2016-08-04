@@ -55,6 +55,8 @@
                 <asp:TextBox ID="txtempid" runat="server" Height="22px" Width="210px"></asp:TextBox>
                 <asp:Button ID="btnAOOSummary" runat="server" onclick="btnAOOSummary_Click" 
                     Text="All OO Summary" />
+                <asp:Button ID="btnShowLocs" runat="server" onclick="btnShowLocs_Click" 
+                    Text="Show Locations" />
             </td>
             <td>
                 &nbsp;</td>
@@ -256,6 +258,18 @@
             <td class="style4">
                 <asp:Button ID="btnVacancy" runat="server" onclick="btnVacancy_Click" 
                     Text="Vacancy List" Width="152px" />
+            </td>
+            <td>
+                &nbsp;</td>
+        </tr>
+        <tr>
+            <td class="style2" align="right">
+                &nbsp;</td>
+            <td class="style5">
+                &nbsp;</td>
+            <td class="style4">
+                <asp:Button ID="btnExceptions" runat="server" onclick="btnExceptions_Click" 
+                    Text="Exception Report" />
             </td>
             <td>
                 &nbsp;</td>

@@ -182,9 +182,11 @@
         </div>
         <div id="save_controls">
             <strong>Save: </strong>
-            <asp:TextBox ID="txtOoNum" runat="server" CssClass="divsave unwatermarked"></asp:TextBox>
+            <asp:TextBox ID="txtOoNum" runat="server" CssClass="divsave unwatermarked" 
+                Width="200px"></asp:TextBox>
             <asp:TextBox ID="txtOoDate" runat="server" CssClass="divsave unwatermarked"></asp:TextBox>
-            <asp:TextBox ID="txtEndorsNo" runat="server" CssClass="divsave unwatermarked"></asp:TextBox>
+            <asp:TextBox ID="txtEndorsNo" runat="server" CssClass="divsave unwatermarked" 
+                Width="200px"></asp:TextBox>
             <asp:Button ID="btnGenOO" runat="server" Text="Generate O/o" 
                 onclick="btnGenOO_Click"/>
             <asp:Button ID="btnSave" runat="server" Text="Save Order" 

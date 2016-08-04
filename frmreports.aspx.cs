@@ -858,4 +858,33 @@ public partial class frmreports : System.Web.UI.Page
         string newWin = "window.open('LocatePost.aspx');";
         ClientScript.RegisterStartupScript(this.GetType(), "pop", newWin, true);
     }
+    protected void btnShowLocs_Click(object sender, EventArgs e)
+    {
+        string sql = string.Empty;
+        string empid = txtempid.Text;
+
+        if (string.IsNullOrWhiteSpace(empid))
+        {
+            return;
+        }
+        sql = "select e.empid, pshr.get_fullname(e.empid) name, cadre.get_mapping_text_from_rowno(cm.rowno) mapped_post, " +
+            "pshr.get_desg(e.cdesgcode) wdesg, pshr.get_org(e.cloccode) wloc from " +
+            "empperso e LEFT OUTER JOIN cadre.cadrmap cm on e.empid = cm.empid " +
+            "where e.empid in (" + empid + ")";
+        Utils.DownloadXLS(sql, "locations" + ".xls", this);
+    }
+    protected void btnExceptions_Click(object sender, EventArgs e)
+    {
+        string sql = string.Empty;
+        
+        sql = "select empid, oonum, to_char(oodate,'dd-Mon-yyyy') as oodate, "+
+            "cadre.get_mapping_text_from_rowno(postrel) as old_post,"+
+            "cadre.get_mapping_text_from_rowno(postjoin) as new_post,"+
+            "decode(eventcode, 36, 'Trans_Pub', 37, 'Trans_Own', 28, 'Promo') Event,"+
+            "pshr.get_org(loccode) new_wloc, pshr.get_desg(desgcode) new_wdesg,"+
+            "pshr.get_org(oldloccode) old_wloc, pshr.get_desg(olddesgcode) old_wdesg,"+
+            "status from cadre.chargereport where status <> 'JRA' and "+
+            "to_char(oodate,'yyyymmdd')>'20160401' order by oonum desc, empid";
+        Utils.DownloadXLS(sql, "exceptions" + ".xls", this);
+    }
 }

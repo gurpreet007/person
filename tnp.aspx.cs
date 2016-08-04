@@ -1096,11 +1096,9 @@ public partial class frmproposal : System.Web.UI.Page
         }
 
         //send info message to directors
-        //string dir_nums = "9646200035,9646200037,9646200026,9646200031,9646200054";
-        string dir_nums = "9646111018,9646119386,9646119107";
         string dir_msg = string.Format("Respected Sir,\nO/O No. {0} Dated: {1} has been issued regarding {2}. Please visit www.pspcl.in for details.\nThanks",
-            oonum, oodate, (hasPromotion?"Promotions, Posting and Transfer":"Posting and Transfer"));
-        libSMSPbGovt.SMS.SendSMS(dir_nums, dir_msg, true);
+            oonum, oodate, (hasPromotion?"Promotions, Postings and Transfers":"Postings and Transfers"));
+        libSMSPbGovt.SMS.SendSMS(Globals.DIR_NUMS, dir_msg, true);
     }
     private void HandleUnderTransfer(string empid)
     {
@@ -1111,6 +1109,28 @@ public partial class frmproposal : System.Web.UI.Page
                     "(status is null or status in ('RRS','RRA','JRS'))", empid);
         ut_msg = OraDBConnection.GetScalar(sql).ToString();
         txtDispLeft.Text = ut_msg;
+    }
+    private int GetViceRetiree(string empid, out string viceid, out string vicename, out string retdate)
+    {
+        int retdays=-1;
+        viceid = string.Empty;
+        vicename = string.Empty;
+        retdate = string.Empty;
+
+        string sql = string.Format("select displacedid,pshr.get_fullname(displacedid ) as name,"+
+            "to_char(pshr.get_retddate(displacedid ),'dd-mm-YYYY') as Ret_Date, "+
+            "ceil(pshr.get_retddate(displacedid )-sysdate) as Ret_Days from "+
+            "CADRE.PROPCADRMAP where empid={0} and propno={1}", empid, PRONO);
+        DataSet ds = OraDBConnection.GetData(sql);
+
+        if (! string.IsNullOrEmpty(ds.Tables[0].Rows[0]["displacedid"].ToString()))
+        {
+            viceid = ds.Tables[0].Rows[0]["displacedid"].ToString();
+            vicename = ds.Tables[0].Rows[0]["name"].ToString();
+            retdate = ds.Tables[0].Rows[0]["Ret_Date"].ToString();
+            retdays = int.Parse(ds.Tables[0].Rows[0]["Ret_Days"].ToString());
+        }
+        return retdays;
     }
     #endregion
 
@@ -2130,15 +2150,21 @@ public partial class frmproposal : System.Web.UI.Page
         ds = OraDBConnection.GetData(sql);
         foreach (DataRow drow in ds.Tables[0].Rows)
         {
-            string sysRemarks = string.Empty;
-            bool flag_ownint = drow["flag_ownint"].ToString() == "1";
-            bool flag_promo = drow["flag_promo"].ToString() == "1";
-            bool flag_vacant = drow["flag_vacant"].ToString() == "1";
-            bool flag_alr_occ = drow["already_occ_post"].ToString() == "1";
             string vice_srno = drow["vice_srno"].ToString();
             string empid = drow["empid"].ToString();
             string sno = drow["sno"].ToString();
             string newline = Environment.NewLine;
+            string sysRemarks = string.Empty;
+            string vicename=string.Empty;
+            string viceid=string.Empty;
+            string retdate = string.Empty;
+            int retddays=-1;
+            bool flag_ownint = drow["flag_ownint"].ToString() == "1";
+            bool flag_promo = drow["flag_promo"].ToString() == "1";
+            bool flag_vacant = drow["flag_vacant"].ToString() == "1";
+            bool flag_alr_occ = drow["already_occ_post"].ToString() == "1";
+            retddays = GetViceRetiree(empid, out viceid, out vicename, out retdate);
+            bool flag_vice_retdays = retddays != -1 && retddays <= 30;
 
             if (flag_promo)
                 sysRemarks += "* On Promotion" + newline;
@@ -2150,6 +2176,8 @@ public partial class frmproposal : System.Web.UI.Page
                 sysRemarks += "* Own Interest " + newline;
             if(flag_alr_occ)
                 sysRemarks += "* Already Occupied Post " + newline;
+            if (flag_vice_retdays)
+                sysRemarks += string.Format("* Vice Er. {0} (Empid {1}) retiring on {2} {3}", vicename, viceid, retdate, newline);
 
             sql = string.Format("update cadre.propcadrmap set sysremarks = '{0}' where empid = '{1}' and propno = '{2}'", sysRemarks, empid, PRONO);
             OraDBConnection.ExecQry(sql);
