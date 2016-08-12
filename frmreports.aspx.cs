@@ -876,15 +876,24 @@ public partial class frmreports : System.Web.UI.Page
     protected void btnExceptions_Click(object sender, EventArgs e)
     {
         string sql = string.Empty;
-        
-        sql = "select empid, oonum, to_char(oodate,'dd-Mon-yyyy') as oodate, "+
-            "cadre.get_mapping_text_from_rowno(postrel) as old_post,"+
-            "cadre.get_mapping_text_from_rowno(postjoin) as new_post,"+
-            "decode(eventcode, 36, 'Trans_Pub', 37, 'Trans_Own', 28, 'Promo') Event,"+
-            "pshr.get_org(loccode) new_wloc, pshr.get_desg(desgcode) new_wdesg,"+
-            "pshr.get_org(oldloccode) old_wloc, pshr.get_desg(olddesgcode) old_wdesg,"+
-            "status from cadre.chargereport where status <> 'JRA' and "+
-            "to_char(oodate,'yyyymmdd')>'20160401' order by oonum desc, empid";
+
+        //exceptions after O/o 130 dated 6/17/2016
+        sql = "SELECT cr.empid, " +
+                  "pshr.get_fullname(cr.empid) as name, " +
+                  "oonum, " +
+                  "TO_CHAR(oodate,'dd-Mon-yyyy')               AS oodate, " +
+                  "cadre.get_mapping_text_from_rowno(postrel)  AS old_post, " +
+                  "cadre.get_mapping_text_from_rowno(postjoin) AS new_post, " +
+                  "DECODE(eventcode, 36, 'Trans_Pub', 37, 'Trans_Own', 28, 'Promo') Event, " +
+                  "pshr.get_org(loccode) new_wloc, " +
+                  "pshr.get_desg(desgcode) new_wdesg, " +
+                  "pshr.get_org(oldloccode) old_wloc, " +
+                  "pshr.get_desg(olddesgcode) old_wdesg, " +
+                  "status,ea.phonecell phone " +
+                "FROM cadre.chargereport cr left outer join pshr.empaddr ea on cr.empid=ea.empid " +
+                "WHERE status                 <> 'JRA' " +
+                "AND TO_CHAR(oodate,'yyyymmdd')>='20160617' " +
+                "ORDER BY cr.oodate,oonum,cr.empid";
         Utils.DownloadXLS(sql, "exceptions" + ".xls", this);
     }
 }

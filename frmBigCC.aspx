@@ -1,4 +1,4 @@
-﻿<%@ Page Title="" Language="C#" MasterPageFile="~/Site.master" AutoEventWireup="true" CodeFile="frmBigNotes.aspx.cs" Inherits="frmNotes2" %>
+﻿<%@ Page Title="" Language="C#" MasterPageFile="~/Site.master" AutoEventWireup="true" CodeFile="frmBigCC.aspx.cs" Inherits="frmCCs2" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="HeadContent" Runat="Server">
     <style>
@@ -9,7 +9,7 @@
 <asp:Content ID="Content2" ContentPlaceHolderID="MainContent" Runat="Server">
     <div id="wrapper">
         <div>
-            <h2>Note Management</h2>
+            <h2>CC Management</h2>
             <br />
         </div>
         <div id="div_options">
@@ -48,19 +48,19 @@
                 onclick="btnResultOpen_Click" />
         </div>
         <div id="div_data" runat="server">
-            <h3 id=heading runat="server">Note</h3>
+            <h3 id=heading runat="server">CC</h3>
             <div id="div_data1">
                 <p>
                     <asp:Label ID="Label1" Text="Name:" runat="server" />
-                    <asp:TextBox ID="note_name" runat="server"/><br />
+                    <asp:TextBox ID="CC_name" runat="server"/><br />
                 </p>
                 <p>
                     <asp:Label ID="Label2" Text="Tags" runat="server" />
-                    <asp:TextBox ID="note_tags" runat="server"/><br />
+                    <asp:TextBox ID="CC_tags" runat="server"/><br />
                 </p>
                 <p>
                     <asp:Label ID="Label3" Text="Data" runat="server" />
-                    <asp:TextBox ID="note_data" runat="server" TextMode=MultiLine Height="100px" 
+                    <asp:TextBox ID="CC_data" runat="server" TextMode=MultiLine Height="100px" 
                         Width="60%"/>
                 </p>
             </div>

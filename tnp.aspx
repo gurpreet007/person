@@ -165,7 +165,9 @@
             <%--<a href="frmnotes.aspx" target="_blank">Insert Notes</a>--%>
             <asp:DropDownList runat="server" ID="ddBigNotes">
             </asp:DropDownList>
-            <a href="CC.aspx" target="_blank">Insert CC List</a>
+            <asp:DropDownList runat="server" ID="ddBigCC">
+            </asp:DropDownList>
+            <%--<a href="CC.aspx" target="_blank">Insert CC List</a>--%>
             <asp:DropDownList ID="ddFSizePrev" runat="server">
                 <asp:ListItem>6</asp:ListItem>
                 <asp:ListItem>7</asp:ListItem>
@@ -190,7 +192,8 @@
             <asp:Button ID="btnGenOO" runat="server" Text="Generate O/o" 
                 onclick="btnGenOO_Click"/>
             <asp:Button ID="btnSave" runat="server" Text="Save Order" 
-                onclick="btnSave_Click"/>
+                onclick="btnSave_Click" OnClientClick="if ( !confirm('Are you sure you want to save this proposal?')) return false;"
+                />
         </div>
         <div id="hidd_fields">
             <asp:HiddenField ID="hidEmpID" runat="server" />

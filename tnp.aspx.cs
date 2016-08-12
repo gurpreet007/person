@@ -773,6 +773,8 @@ public partial class frmproposal : System.Web.UI.Page
         string notes = "1";
         string propno = this.PRONO.ToString();
         string bignote=string.Empty;
+        string bigcc = string.Empty;
+
         if (save)
         {
             oonum = txtOoNum.Text;
@@ -783,10 +785,15 @@ public partial class frmproposal : System.Web.UI.Page
         {
             bignote = OraDBConnection.GetScalar(string.Format("select data from cadre.bignotes where name = '{0}'", ddBigNotes.SelectedValue));
         }
+        if (ddBigCC.SelectedValue != "")
+        {
+            bigcc = OraDBConnection.GetScalar(string.Format("select data from cadre.bigcc where name = '{0}'", ddBigCC.SelectedValue));
+        }
         string sql = "select m.sno,'" + oonum + "' as oonum1, '" + oodate + "' as oodate1, '" + notes + "' as notes," +
                     "'" + endono + "' as endono, " +
                     ddFSizePrev.SelectedValue + " as fsize, " +
                     "'" + bignote + "' as bignote, " +
+                    "'" + bigcc + "' as bigcc, " +
                     "(select count(*) from cadre.propcadrmap where propno = " + propno + ") TotCount, " +
                     "(select count(*) from cadre.propcadrmap where status = 'P' and propno = " + propno + ") PCount, " +
                     " pshr.get_fullname(e.empid) as fullname,to_char(e.empid) as empid,to_char(e.dob,'dd-mm-yyyy') as dob," +
@@ -833,11 +840,12 @@ public partial class frmproposal : System.Web.UI.Page
         //CrystalReportSource1.ReportDocument.Subreports["notes"].SetDataSource(dsnotes.Tables[0]);
         //CrystalReportSource1.DataBind();
 
-        System.Data.DataSet dscc;
-        sql = "select * from cadre.cclist_proposal_person where ccnum > 0 and proposalno = " + propno + " order by sno";
-        dscc = OraDBConnection.GetData(sql);
-        CrystalReportSource1.ReportDocument.Subreports["cclists"].SetDataSource(dscc.Tables[0]);
-        CrystalReportSource1.DataBind();
+        //System.Data.DataSet dscc;
+        //sql = "select * from cadre.cclist_proposal_person where ccnum > 0 and proposalno = " + propno + " order by sno";
+        //dscc = OraDBConnection.GetData(sql);
+        //CrystalReportSource1.ReportDocument.Subreports["cclists"].SetDataSource(dscc.Tables[0]);
+        //CrystalReportSource1.DataBind();
+
         CrystalReportSource1.ReportDocument.ExportToDisk(ExportFormatType.PortableDocFormat, pdfPath);
 
         Utils.DownloadFile(pdfPath);
@@ -1067,15 +1075,21 @@ public partial class frmproposal : System.Web.UI.Page
         }
         return true;
     }
-    private void FillBigNotes()
+    private void FillBigNotesandCC()
     {
         string sql = "select name, name as txtval from cadre.bignotes where type='N' order by addedon desc";
-        //string sql = "select name, name || '(' || tags || ')' as txtval from cadre.bignotes where type='N' order by addedon desc";
         ddBigNotes.DataSource = OraDBConnection.GetData(sql);
         ddBigNotes.DataTextField = "txtval";
         ddBigNotes.DataValueField = "name";
         ddBigNotes.DataBind();
         ddBigNotes.Items.Insert(0, new ListItem("Select Note", ""));
+
+        sql = "select name, name as txtval from cadre.bigcc where type='N' order by addedon desc";
+        ddBigCC.DataSource = OraDBConnection.GetData(sql);
+        ddBigCC.DataTextField = "txtval";
+        ddBigCC.DataValueField = "name";
+        ddBigCC.DataBind();
+        ddBigCC.Items.Insert(0, new ListItem("Select CC", ""));
     }
     private void SendSMS(string oonum, string oodate)
     {
@@ -1274,7 +1288,7 @@ public partial class frmproposal : System.Web.UI.Page
             //txtName.Visible = false;
             //txtLoc.Visible = false;
 
-            string sqlPropLine = "select proplinemode, proplinetext, LASTLINEMODE, LASTLINETEXT,bignote from cadre.tp_proposals where pno = " + PRONO;
+            string sqlPropLine = "select proplinemode, proplinetext, LASTLINEMODE, LASTLINETEXT,bignote,bigcc from cadre.tp_proposals where pno = " + PRONO;
             DataRow drow = OraDBConnection.GetData(sqlPropLine).Tables[0].Rows[0];
             if (drow["proplinemode"].ToString() == "A")
             {
@@ -1301,10 +1315,14 @@ public partial class frmproposal : System.Web.UI.Page
             string sql = "select status from cadre.tp_proposals where pno = " + PRONO;
             btnSave.Enabled = !(OraDBConnection.GetScalar(sql) == "S");
 
-            FillBigNotes();
+            FillBigNotesandCC();
             if (drow["bignote"].ToString() != "")
             {
                 ddBigNotes.SelectedIndex = ddBigNotes.Items.IndexOf(ddBigNotes.Items.FindByValue(drow["bignote"].ToString()));
+            }
+            if (drow["bigcc"].ToString() != "")
+            {
+                ddBigCC.SelectedIndex = ddBigCC.Items.IndexOf(ddBigCC.Items.FindByValue(drow["bigcc"].ToString()));
             }
             FillOutstandings();
         }
@@ -1586,7 +1604,8 @@ public partial class frmproposal : System.Web.UI.Page
         //    Utils.ShowMessageBox(this, "Error: Create CC List First");
         //    return;
         //}
-        string sql = string.Format("update cadre.tp_proposals set bignote = '{0}' where pno = {1}", ddBigNotes.SelectedValue, PRONO);
+        string sql = string.Format("update cadre.tp_proposals set bignote = '{0}', bigcc='{1}' where pno = {2}", 
+            ddBigNotes.SelectedValue, ddBigCC.SelectedValue, PRONO);
         OraDBConnection.ExecQry(sql);
         MakeReport();
     }
@@ -1641,6 +1660,13 @@ public partial class frmproposal : System.Web.UI.Page
         }
         else if (hidStatus.Value == "P")
         {
+            //On promotion of JE set working desg as AE (9057)
+            if ("9067 9499 9500 9088 9501 9555 9657 9090 9672 9544 9535".Contains(hidWDesgCode.Value))
+            {
+                txtCDesg.Text = "AE-9057";
+                return;
+            }
+
             DataSet ds = OraDBConnection.GetData("select desgcode,pshr.get_desg(desgcode) as desgtext from cadre.cadr where rowno = " + drpLocs.SelectedValue);
             if (ds.Tables[0].Rows.Count == 1)
             {
