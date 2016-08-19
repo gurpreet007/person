@@ -532,7 +532,7 @@ public partial class frmproposal : System.Web.UI.Page
     }
     private bool Save()
     {
-        string empid, eventcode, cdesgcode, cloccode, proposed_rowno,oldrowno, newempid;
+        string empid, eventcode, cdesgcode, cloccode, proposed_rowno,oldrowno, newempid,lastevent;
         string pcloccode, sancdesg, sancindx, sql, rstatus, remDate = string.Empty;
         string oldLoccode, oldDesgcode;
         bool ret = false;
@@ -549,7 +549,7 @@ public partial class frmproposal : System.Web.UI.Page
 
         string oonum = txtOoNum.Text;
         string oodate = txtOoDate.Text;
-        int[] leave_events = new int[]{1,2,3,4,5,6,7,8,9,62,63,86,98};
+        int[] leave_events = new int[]{1,2,3,4,5,6,7,8,9,62,63,86,98,44};
         int[] retd_events = new int[]{11,12,13,14,15,16,89};
 
         //check if any outstanding entry is pending
@@ -600,6 +600,9 @@ public partial class frmproposal : System.Web.UI.Page
             }
             cdesgcode = row["cdesgcode"].ToString();
             cloccode = row["cloccode"].ToString();
+
+            lastevent = row["last_event"].ToString();
+            int rel_skip = (leave_events.Contains(int.Parse(lastevent)))?1:0;
 
             //if location is "On Leave" then set eventcode to LELS
             if (cloccode == "999999999")
@@ -706,9 +709,9 @@ public partial class frmproposal : System.Web.UI.Page
                 DateTime outDate;
                 if (DateTime.TryParse(remDate, out outDate))
                 {
-                    sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode, eventdate,oldloccode,olddesgcode, propno) " +
-                    "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}','10')",
-                    empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, remDate, oldLoccode, oldDesgcode, PRONO);
+                    sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode, eventdate,oldloccode,olddesgcode, propno,last_event,rel_skip, status, date_rel_req, date_rel_accept) " +
+                    "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}','10','{11}','{12}','{13}',{14},{14})",
+                    empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, remDate, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "");
                 }
                 else
                 {
@@ -718,16 +721,16 @@ public partial class frmproposal : System.Web.UI.Page
             }
             else if (rowType == rowTypes.SPECIAL_LOC)
             {
-                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode,newempid,oldloccode, olddesgcode, propno) " +
-                   "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}', '{10}')",
-                   empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO);
+                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode,newempid,oldloccode, olddesgcode, propno,last_event,rel_skip, status, date_rel_req, date_rel_accept) " +
+                   "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}', '{10}','{11}','{12}','{13}',{14},{14})",
+                   empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "");
             }
             else if(rowType == rowTypes.NORMAL)
             {
                 //in case of normal location
-                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, postjoin, eventcode, loccode, desgcode, newempid, oldloccode, olddesgcode, propno) " +
-                    "values({0},'{1}','{2}',{3},{4},{5},{6},{7},'{8}','{9}','{10}', '{11}')",
-                    empid, oonum, oodate, oldrowno, proposed_rowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO);
+                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, postjoin, eventcode, loccode, desgcode, newempid, oldloccode, olddesgcode, propno,last_event,rel_skip,status, date_rel_req, date_rel_accept) " +
+                    "values({0},'{1}','{2}',{3},{4},{5},{6},{7},'{8}','{9}','{10}', '{11}','{12}','{13}','{14}',{15},{15})",
+                    empid, oonum, oodate, oldrowno, proposed_rowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "");
             }
 
             //to handle under transfer cases 
