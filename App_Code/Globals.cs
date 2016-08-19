@@ -22,4 +22,18 @@ public static class Globals
             }
         }
     }
+    public static string DOCS_LOC
+    {
+        get
+        {
+            if (System.Environment.MachineName.ToUpper().Contains("SERVER"))
+            {
+                return "H:\\inetpub\\wwwroot\\uploadordrs\\docs\\";
+            }
+            else
+            {
+                return "C:\\inetpub\\wwwroot\\uploadordrs\\docs\\";
+            }
+        }
+    }
 }

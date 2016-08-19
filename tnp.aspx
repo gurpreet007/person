@@ -185,14 +185,18 @@
         <div id="save_controls">
             <strong>Save: </strong>
             <asp:TextBox ID="txtOoNum" runat="server" CssClass="divsave unwatermarked" 
-                Width="200px"></asp:TextBox>
+                Width="100px"></asp:TextBox>
             <asp:TextBox ID="txtOoDate" runat="server" CssClass="divsave unwatermarked"></asp:TextBox>
             <asp:TextBox ID="txtEndorsNo" runat="server" CssClass="divsave unwatermarked" 
-                Width="200px"></asp:TextBox>
+                Width="100px"></asp:TextBox>
             <asp:Button ID="btnGenOO" runat="server" Text="Generate O/o" 
                 onclick="btnGenOO_Click"/>
-            <asp:Button ID="btnSave" runat="server" Text="Save Order" 
+            <asp:Button ID="btnSave" runat="server" Text="Save" 
                 onclick="btnSave_Click" OnClientClick="if ( !confirm('Are you sure you want to save this proposal?')) return false;"
+                />
+            <asp:Button ID="btnUpload" runat="server" Text="Upload" 
+                onclick="btnUpload_Click" 
+                OnClientClick="if ( !confirm('Are you sure you want to upload this proposal?')) return false;" Visible="False"
                 />
         </div>
         <div id="hidd_fields">

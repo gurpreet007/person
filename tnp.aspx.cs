@@ -711,7 +711,7 @@ public partial class frmproposal : System.Web.UI.Page
                 {
                     sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode, eventdate,oldloccode,olddesgcode, propno,last_event,rel_skip, status, date_rel_req, date_rel_accept) " +
                     "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}','10','{11}','{12}','{13}',{14},{14})",
-                    empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, remDate, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "");
+                    empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, remDate, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "''", rel_skip == 1 ? "sysdate" : "''");
                 }
                 else
                 {
@@ -723,14 +723,14 @@ public partial class frmproposal : System.Web.UI.Page
             {
                 sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode,newempid,oldloccode, olddesgcode, propno,last_event,rel_skip, status, date_rel_req, date_rel_accept) " +
                    "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}', '{10}','{11}','{12}','{13}',{14},{14})",
-                   empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "");
+                   empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "''", rel_skip == 1 ? "sysdate" : "''");
             }
             else if(rowType == rowTypes.NORMAL)
             {
                 //in case of normal location
                 sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, postjoin, eventcode, loccode, desgcode, newempid, oldloccode, olddesgcode, propno,last_event,rel_skip,status, date_rel_req, date_rel_accept) " +
                     "values({0},'{1}','{2}',{3},{4},{5},{6},{7},'{8}','{9}','{10}', '{11}','{12}','{13}','{14}',{15},{15})",
-                    empid, oonum, oodate, oldrowno, proposed_rowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "");
+                    empid, oonum, oodate, oldrowno, proposed_rowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "''", rel_skip == 1 ? "sysdate" : "''");
             }
 
             //to handle under transfer cases 
@@ -768,7 +768,7 @@ public partial class frmproposal : System.Web.UI.Page
         }
         return true;
     }
-    private void MakeReport(bool save = false)
+    private string MakeReport(bool save = false, bool download = true)
     {
         string oonum = "-";
         string oodate = "-";
@@ -851,7 +851,11 @@ public partial class frmproposal : System.Web.UI.Page
 
         CrystalReportSource1.ReportDocument.ExportToDisk(ExportFormatType.PortableDocFormat, pdfPath);
 
-        Utils.DownloadFile(pdfPath);
+        if (download)
+        {
+            Utils.DownloadFile(pdfPath);
+        }
+        return pdfPath;
     }
     private void Makeproreport()
     {
@@ -1094,11 +1098,12 @@ public partial class frmproposal : System.Web.UI.Page
         ddBigCC.DataBind();
         ddBigCC.Items.Insert(0, new ListItem("Select CC", ""));
     }
-    private void SendSMS(string oonum, string oodate)
+    private void SendSMS(string oonum, string oodate, string destPath="")
     {
         string sql = "select empid, phonecell from EMPADDR where empid in (select empid from CADRE.PROPCADRMAP where propno = "+PRONO+") and length(phonecell) >= 10";
         DataSet ds = OraDBConnection.GetData(sql);
         string msg;
+        string dir_msg;
         StringBuilder sbNums = new StringBuilder(50*10);
         bool hasPromotion = !(OraDBConnection.GetScalar(string.Format("select count(*) from cadre.chargereport where eventcode=28 and oonum='{0}'", oonum)) == "0");
         foreach (DataRow drow in ds.Tables[0].Rows)
@@ -1106,16 +1111,30 @@ public partial class frmproposal : System.Web.UI.Page
             sbNums.Append(drow["phonecell"].ToString());
             sbNums.Append(",");
         }
-        msg = string.Format("There is a change in your posting. Please see Services-I O/o No. {0} Dt. {1}",oonum,oodate);
+        if(string.IsNullOrWhiteSpace(destPath))
+        {
+            msg = string.Format("There is a change in your posting. Please see Services-I O/o No. {0} Dt. {1}.", oonum, oodate);
+            dir_msg = string.Format("Respected Sir,\nO/o No. {0} Dated: {1} has been issued regarding {2}.\nThanks",
+                        oonum, oodate, (hasPromotion ? "Promotions, Postings and Transfers" : "Postings and Transfers"));
+        }
+        else
+        {
+            msg = string.Format("There is a change in your posting. Please see Services-I O/o No. {0} Dt. {1}. Direct link: {2}", oonum, oodate, destPath);
+            dir_msg = string.Format("Respected Sir,\nO/o No. {0} Dated: {1} has been issued regarding {2}. Direct Link: {3}.\nThanks",
+                        oonum, oodate, (hasPromotion ? "Promotions, Postings and Transfers" : "Postings and Transfers"), destPath);
+        }
+        
+        //send message to officers
         if (libSMSPbGovt.SMS.SendSMS(sbNums.ToString(), msg, true))
         {
             OraDBConnection.ExecQry(string.Format("insert into cadre.smslog values('{0}','{1}',sysdate)", sbNums.ToString(), msg));
         }
 
         //send info message to directors
-        string dir_msg = string.Format("Respected Sir,\nO/O No. {0} Dated: {1} has been issued regarding {2}. Please visit www.pspcl.in for details.\nThanks",
-            oonum, oodate, (hasPromotion?"Promotions, Postings and Transfers":"Postings and Transfers"));
-        libSMSPbGovt.SMS.SendSMS(Globals.DIR_NUMS, dir_msg, true);
+        if (libSMSPbGovt.SMS.SendSMS(Globals.DIR_NUMS, dir_msg, true))
+        {
+            OraDBConnection.ExecQry(string.Format("insert into cadre.smslog values('{0}','{1}',sysdate)", Globals.DIR_NUMS, dir_msg));
+        }
     }
     private void HandleUnderTransfer(string empid)
     {
@@ -1148,6 +1167,39 @@ public partial class frmproposal : System.Web.UI.Page
             retdays = int.Parse(ds.Tables[0].Rows[0]["Ret_Days"].ToString());
         }
         return retdays;
+    }
+    private string UploadOrder()
+    {
+        string srcPath = MakeReport(true, false);
+        //string destPath = "http://docs.pspcl.in/docs";
+        string destPath = Globals.DOCS_LOC;
+        string fileName = "services1" + srcPath.Substring(srcPath.LastIndexOf("\\")).Replace("\\", "-");
+        destPath = System.IO.Path.Combine(destPath, fileName);
+        System.IO.File.Copy(srcPath, destPath);
+        System.IO.File.Delete(srcPath);
+
+        string sql;
+
+        sql = string.Format("INSERT INTO UPLOADORG.DOCS_LST VALUES " +
+            "((select nvl(max(srno),0) from uploadorg.docs_lst)+1,'Postings and transfers', '{0}', 'DY-SECY-SERV1', 'BEG-I', '{1}', SYSDATE,SYSDATE, 'services1', 'No','','')",
+            fileName, txtOoNum.Text);
+        OraDBConnection.ExecQry(sql);
+
+        sql = "select empid from cadre.propcadrmap where propno =" + PRONO;
+        DataSet ds = OraDBConnection.GetData(sql);
+
+        string empid = string.Empty;
+        sql = "BEGIN ";
+        foreach (DataRow drow in ds.Tables[0].Rows)
+        {
+            empid = drow["empid"].ToString();
+            sql += string.Format("insert into pshr.empdocs values"+
+                "({0},'Postings and transfers','{1}',sysdate, '105225',sysdate,'{2}'); ",
+                empid,txtOoNum.Text,destPath);
+        }
+        sql += "END; ";
+        OraDBConnection.ExecQry(sql);
+        return destPath;
     }
     #endregion
 
@@ -2213,6 +2265,22 @@ public partial class frmproposal : System.Web.UI.Page
         }
 
         FillGrid();
+    }
+    protected void btnUpload_Click(object sender, EventArgs e)
+    {
+        string destPath;
+        string sql = "select status from cadre.tp_proposals where pno = " + PRONO;
+        bool saved = OraDBConnection.GetScalar(sql) == "S";
+
+        if (!saved)
+        {
+            Utils.ShowMessageBox(this,"Please save this proposal first.");
+            return;
+        }
+
+        destPath = UploadOrder().Replace(Globals.DOCS_LOC, "http://docs.pspcl.in/docs/");
+        SendSMS(txtOoNum.Text, txtOoDate.Text, destPath);
+        Utils.ShowMessageBox(this, "Order Uploaded");
     }
     #endregion
 }
