@@ -28,7 +28,7 @@ public partial class frmproposalmenu : System.Web.UI.Page
         DataSet ds;
         sql = "select pno as \"Proposal_No\",pname as \"Proposal_Name\", " +
                 "to_char(pdate,'DD-Mon-YYYY') as \"Creation_Date\" , "+
-                "(select count(*) from cadre.propcadrmap where propno = pno) as entry_count " +
+                "(select count(*) from cadre.propcadrmap where propno = pno) as entry_count,oonum " +
                 " from cadre.tp_proposals " +
                 " WHERE status='" + rbStatus.SelectedValue + "' order by pno";
         ds = OraDBConnection.GetData(sql);

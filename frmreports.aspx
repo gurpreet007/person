@@ -270,6 +270,10 @@
             <td class="style4">
                 <asp:Button ID="btnExceptions" runat="server" onclick="btnExceptions_Click" 
                     Text="Exception Report" />
+                <asp:TextBox ID="txtEmpIDRemCR" runat="server" Width="50px" placeholder="Empid"></asp:TextBox>
+                <asp:TextBox ID="txtOonumRemCR" runat="server" Width="50px" placeholder="Oonum"></asp:TextBox>
+                <asp:Button ID="btnRemCR" runat="server" onclick="btnRemCR_Click" 
+                    Text="Remove" />
             </td>
             <td>
                 &nbsp;</td>
@@ -282,6 +286,20 @@
             <td class="style4">
             <asp:LinkButton ID="lnkLocatePost" Text="Locate Post" runat="server" 
                     onclick="lnkLocatePost_Click" />
+            </td>
+            <td>
+                &nbsp;</td>
+        </tr>
+        <tr>
+            <td class="style2" align="right">
+                &nbsp;</td>
+            <td class="style5">
+                <asp:Label ID="Label6" runat="server" Text="Search in Notes"></asp:Label>
+            </td>
+            <td class="style4">
+                <asp:TextBox ID="txtNoteSearch" runat="server" placeholder="Text to Search in Notes"></asp:TextBox>
+                <asp:Button ID="btnNoteSearch" runat="server" 
+                    Text="O/o with Content in Notes" onclick="btnNoteSearch_Click" />
             </td>
             <td>
                 &nbsp;</td>

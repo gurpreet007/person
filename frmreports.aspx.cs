@@ -878,22 +878,45 @@ public partial class frmreports : System.Web.UI.Page
         string sql = string.Empty;
 
         //exceptions after O/o 130 dated 6/17/2016
-        sql = "SELECT cr.empid, " +
-                  "pshr.get_fullname(cr.empid) as name, " +
-                  "oonum, " +
-                  "TO_CHAR(oodate,'dd-Mon-yyyy')               AS oodate, " +
-                  "cadre.get_mapping_text_from_rowno(postrel)  AS old_post, " +
-                  "cadre.get_mapping_text_from_rowno(postjoin) AS new_post, " +
-                  "DECODE(eventcode, 36, 'Trans_Pub', 37, 'Trans_Own', 28, 'Promo') Event, " +
-                  "pshr.get_org(loccode) new_wloc, " +
-                  "pshr.get_desg(desgcode) new_wdesg, " +
-                  "pshr.get_org(oldloccode) old_wloc, " +
-                  "pshr.get_desg(olddesgcode) old_wdesg, " +
-                  "status,ea.phonecell phone " +
-                "FROM cadre.chargereport cr left outer join pshr.empaddr ea on cr.empid=ea.empid " +
-                "WHERE status                 <> 'JRA' " +
-                "AND TO_CHAR(oodate,'yyyymmdd')>='20160617' " +
-                "ORDER BY cr.oodate,oonum,cr.empid";
+        sql = "select a.* from (SELECT cr.empid," +
+              "pshr.get_fullname(cr.empid) AS name,"+
+              "oonum,"+
+              "TO_CHAR(oodate,'dd-Mon-yyyy')               AS oodate,"+
+              "cadre.get_mapping_text_from_rowno(postrel)  AS old_post,"+
+              "cadre.get_mapping_text_from_rowno(postjoin) AS new_post,"+
+              "DECODE(eventcode, 36, 'Trans_Pub', 37, 'Trans_Own', 28, 'Promo') Event,"+
+              "pshr.get_org(loccode) new_wloc,"+
+              "pshr.get_desg(desgcode) new_wdesg,"+
+              "pshr.get_org(oldloccode) old_wloc,"+
+              "pshr.get_desg(olddesgcode) old_wdesg,"+
+              "status,"+
+              "ea.phonecell phone,"+
+              "propno, "+
+              "max(propno) over (partition by cr.empid) max_propno "+
+            "FROM cadre.chargereport cr "+
+            "LEFT OUTER JOIN pshr.empaddr ea ON cr.empid =ea.empid "+
+            "WHERE (status <> 'JRA' or status is null) "+
+            "AND TO_CHAR(oodate,'yyyymmdd')>='20160617' "+ 
+            "ORDER BY cr.oodate,  oonum,  cr.empid) a "+
+            "where propno = max_propno";
         Utils.DownloadXLS(sql, "exceptions" + ".xls", this);
+    }
+    protected void btnRemCR_Click(object sender, EventArgs e)
+    {
+        string sql = string.Format("insert into cadre.DELETED_CHARGEREPORTS "+
+            "select * from cadre.chargereport where empid in ({0}) and oonum = '{1}'",
+            txtEmpIDRemCR.Text, txtOonumRemCR.Text);
+        OraDBConnection.ExecQry(sql);
+        sql = string.Format("delete from cadre.chargereport where empid in ({0}) and oonum = '{1}'",
+            txtEmpIDRemCR.Text, txtOonumRemCR.Text);
+        OraDBConnection.ExecQry(sql);
+        Utils.ShowMessageBox(this, "Deleted from Charge Reports");
+    }
+    protected void btnNoteSearch_Click(object sender, EventArgs e)
+    {
+        string data = txtNoteSearch.Text;
+        string sql = string.Format("select tp.*,(select data from cadre.bignotes where name = tp.bignote) as note_data "+
+            "from CADRE.TP_PROPOSALS tp where bignote in (select name from cadre.bignotes where upper(data) like upper('%{0}%'))",data);
+        Utils.DownloadXLS(sql, "note_search.xls", this);
     }
 }
