@@ -324,14 +324,15 @@ public partial class frmproposalmenu : System.Web.UI.Page
             string sql_prop_dup = "insert into cadre.propcadrmap " +
                                     "select empid, rowno, status, proposed_rowno, cloccode, cdesgcode, remarks, sno, " +
                                     "(select max(pno) from cadre.tp_proposals), " +
-                                    "newempid, displacedid, last_event, olddesgcode, oldloccode, prvcomment " +
+                                    "newempid, displacedid, last_event, olddesgcode, oldloccode, prvcomment," +
+                                    "DISP_LEFT, DISP_RIGHT,  SYSREMARKS,  FLAG_OWNINT " +
                                     "from cadre.propcadrmap where propno = " + dupNo;
-            string sql_cc_dup = "insert into CADRE.CCLIST_PROPOSAL_PERSON " +
-                                    "select sno, (select max(pno) from cadre.tp_proposals), ccnum, loc from " +
-                                    "CADRE.CCLIST_PROPOSAL_PERSON where PROPOSALNO= " + dupNo;
-            string sql_notes_dup = "insert into CADRE.NOTES_PROPOSAL_PERSON " +
-                                    "select sno, (select max(pno) from cadre.tp_proposals), ccnum, notes from " +
-                                    "CADRE.NOTES_PROPOSAL_PERSON where PROPOSALNO= " + dupNo;
+            //string sql_cc_dup = "insert into CADRE.CCLIST_PROPOSAL_PERSON " +
+            //                        "select sno, (select max(pno) from cadre.tp_proposals), ccnum, loc from " +
+            //                        "CADRE.CCLIST_PROPOSAL_PERSON where PROPOSALNO= " + dupNo;
+            //string sql_notes_dup = "insert into CADRE.NOTES_PROPOSAL_PERSON " +
+            //                        "select sno, (select max(pno) from cadre.tp_proposals), ccnum, notes from " +
+            //                        "CADRE.NOTES_PROPOSAL_PERSON where PROPOSALNO= " + dupNo;
             bool ret = false;
 
             try
@@ -346,16 +347,16 @@ public partial class frmproposalmenu : System.Web.UI.Page
                 {
                     throw new Exception("Error in Duplicating Proposal");
                 }
-                ret = OraDBConnection.ExecQry(sql_cc_dup);
-                if (ret == false)
-                {
-                    throw new Exception("Error in Duplicating CC List");
-                }
-                ret = OraDBConnection.ExecQry(sql_notes_dup);
-                if (ret == false)
-                {
-                    throw new Exception("Error in Duplicating Notes");
-                }
+                //ret = OraDBConnection.ExecQry(sql_cc_dup);
+                //if (ret == false)
+                //{
+                //    throw new Exception("Error in Duplicating CC List");
+                //}
+                //ret = OraDBConnection.ExecQry(sql_notes_dup);
+                //if (ret == false)
+                //{
+                //    throw new Exception("Error in Duplicating Notes");
+                //}
             }
             catch (Exception ex)
             {
@@ -372,20 +373,21 @@ public partial class frmproposalmenu : System.Web.UI.Page
             string sql_prop_dup = "insert into cadre.propcadrmap " +
                                     "select empid, rowno, status, proposed_rowno, cloccode, cdesgcode, remarks, sno, " +
                                     "(select max(pno) from cadre.tp_proposals), " +
-                                    "newempid, displacedid, last_event, olddesgcode, oldloccode, prvcomment, disp_left, disp_right " +
+                                    "newempid, displacedid, last_event, olddesgcode, oldloccode, prvcomment, disp_left, disp_right, sysremarks, flag_ownint " +
                                     "from cadre.propcadrmap where propno = " + dupNo;
             string sql_prop_merge = "insert into cadre.propcadrmap " +
                                     "select empid, rowno, status, proposed_rowno, cloccode, cdesgcode, remarks, "+
                                     "sno+(select max(sno) from cadre.propcadrmap where propno = (select max(pno) from cadre.tp_proposals)), "+
                                     "(select max(pno) from cadre.tp_proposals), " +
-                                    "newempid, displacedid, last_event, olddesgcode, oldloccode, prvcomment, disp_left, disp_right " +
+                                    "newempid, displacedid, last_event, olddesgcode, oldloccode, prvcomment, "+
+                                    "disp_left, disp_right, sysremarks, flag_ownint " +
                                     "from cadre.propcadrmap where propno = " + mergeNo;
-            string sql_cc_dup = "insert into CADRE.CCLIST_PROPOSAL_PERSON " +
-                                    "select sno, (select max(pno) from cadre.tp_proposals), ccnum, loc from " +
-                                    "CADRE.CCLIST_PROPOSAL_PERSON where PROPOSALNO= " + dupNo;
-            string sql_notes_dup = "insert into CADRE.NOTES_PROPOSAL_PERSON " +
-                                    "select sno, (select max(pno) from cadre.tp_proposals), ccnum, notes from " +
-                                    "CADRE.NOTES_PROPOSAL_PERSON where PROPOSALNO= " + dupNo;
+            //string sql_cc_dup = "insert into CADRE.CCLIST_PROPOSAL_PERSON " +
+            //                        "select sno, (select max(pno) from cadre.tp_proposals), ccnum, loc from " +
+            //                        "CADRE.CCLIST_PROPOSAL_PERSON where PROPOSALNO= " + dupNo;
+            //string sql_notes_dup = "insert into CADRE.NOTES_PROPOSAL_PERSON " +
+            //                        "select sno, (select max(pno) from cadre.tp_proposals), ccnum, notes from " +
+            //                        "CADRE.NOTES_PROPOSAL_PERSON where PROPOSALNO= " + dupNo;
             bool ret = false;
 
             try
@@ -405,16 +407,16 @@ public partial class frmproposalmenu : System.Web.UI.Page
                 {
                     throw new Exception("Error in Merging Proposal Entry");
                 }
-                ret = OraDBConnection.ExecQry(sql_cc_dup);
-                if (ret == false)
-                {
-                    throw new Exception("Error in Duplicating CC List");
-                }
-                ret = OraDBConnection.ExecQry(sql_notes_dup);
-                if (ret == false)
-                {
-                    throw new Exception("Error in Duplicating Notes");
-                }
+                //ret = OraDBConnection.ExecQry(sql_cc_dup);
+                //if (ret == false)
+                //{
+                //    throw new Exception("Error in Duplicating CC List");
+                //}
+                //ret = OraDBConnection.ExecQry(sql_notes_dup);
+                //if (ret == false)
+                //{
+                //    throw new Exception("Error in Duplicating Notes");
+                //}
             }
             catch (Exception ex)
             {

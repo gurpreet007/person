@@ -249,7 +249,7 @@ public partial class frmproposal : System.Web.UI.Page
         else if (status == "P")
         {
             //special handling in case of AAE -> show both AE and AEE sanctioned locations
-            string nextdesg = ((new string[] { "9499", "9500", "9535", "9544", "9067" , "9088", "9501", "9077"}).Contains(curdesg)) ? "9057,9056" : string.Empty;
+            string nextdesg = ((new string[] { "9499", "9500", "9535", "9544", "9067" , "9088", "9501", "9077", "9066"}).Contains(curdesg)) ? "9057,9056" : string.Empty;
             
             if(string.IsNullOrEmpty(nextdesg))
             {
@@ -711,7 +711,7 @@ public partial class frmproposal : System.Web.UI.Page
                 {
                     sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode, eventdate,oldloccode,olddesgcode, propno,last_event,rel_skip, status, date_rel_req, date_rel_accept) " +
                     "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}','10','{11}','{12}','{13}',{14},{14})",
-                    empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, remDate, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "''", rel_skip == 1 ? "sysdate" : "''");
+                    empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, remDate, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "''");
                 }
                 else
                 {
@@ -723,14 +723,14 @@ public partial class frmproposal : System.Web.UI.Page
             {
                 sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode,newempid,oldloccode, olddesgcode, propno,last_event,rel_skip, status, date_rel_req, date_rel_accept) " +
                    "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}', '{10}','{11}','{12}','{13}',{14},{14})",
-                   empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "''", rel_skip == 1 ? "sysdate" : "''");
+                   empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "''");
             }
             else if(rowType == rowTypes.NORMAL)
             {
                 //in case of normal location
                 sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, postjoin, eventcode, loccode, desgcode, newempid, oldloccode, olddesgcode, propno,last_event,rel_skip,status, date_rel_req, date_rel_accept) " +
                     "values({0},'{1}','{2}',{3},{4},{5},{6},{7},'{8}','{9}','{10}', '{11}','{12}','{13}','{14}',{15},{15})",
-                    empid, oonum, oodate, oldrowno, proposed_rowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "''", rel_skip == 1 ? "sysdate" : "''");
+                    empid, oonum, oodate, oldrowno, proposed_rowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "''");
             }
 
             //to handle under transfer cases 
@@ -1100,6 +1100,11 @@ public partial class frmproposal : System.Web.UI.Page
     }
     private void SendSMS(string oonum, string oodate, string destPath="")
     {
+        //only send sms if running on server
+        if (! System.Environment.MachineName.ToUpper().Contains("SERVER"))
+        {
+            return;
+        }
         string sql = "select empid, phonecell from EMPADDR where empid in (select empid from CADRE.PROPCADRMAP where propno = "+PRONO+") and length(phonecell) >= 10";
         DataSet ds = OraDBConnection.GetData(sql);
         string msg;
@@ -1659,8 +1664,8 @@ public partial class frmproposal : System.Web.UI.Page
         //    Utils.ShowMessageBox(this, "Error: Create CC List First");
         //    return;
         //}
-        string sql = string.Format("update cadre.tp_proposals set bignote = '{0}', bigcc='{1}' where pno = {2}", 
-            ddBigNotes.SelectedValue, ddBigCC.SelectedValue, PRONO);
+        string sql = string.Format("update cadre.tp_proposals set bignote = '{0}', bigcc='{1}' where pno = {2}",
+            ddBigNotes.SelectedValue.Replace("'", ""), ddBigCC.SelectedValue.Replace("'", ""), PRONO);
         OraDBConnection.ExecQry(sql);
         MakeReport();
     }
@@ -1721,6 +1726,14 @@ public partial class frmproposal : System.Web.UI.Page
                 txtCDesg.Text = "AE-9057";
                 return;
             }
+
+            //On promotion of CHD set working desg as "CHD ON TECH. TRAINING" code 9734
+            if (hidWDesgCode.Value == "9066")
+            {
+                txtCDesg.Text = "CHD ON TECH. TRAINING-9734";
+                return;
+            }
+
 
             DataSet ds = OraDBConnection.GetData("select desgcode,pshr.get_desg(desgcode) as desgtext from cadre.cadr where rowno = " + drpLocs.SelectedValue);
             if (ds.Tables[0].Rows.Count == 1)
@@ -2225,8 +2238,8 @@ public partial class frmproposal : System.Web.UI.Page
 
         //set flags
         sql = string.Format("select pc.empid, pc.sno, flag_ownint, decode(pc.status,'P',1,0) as flag_promo, nvl2(cm.empid,0,1) as flag_vacant," +
-                            "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND rownum < 2 AND pc2.sno <> pc.sno) as vice_srno, " +
-                            "case when pc.oldloccode=pc.cloccode and pc.cdesgcode = 9056 then 1 else 0 end as already_occ_post "+
+                            "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND rownum < 2 AND pc2.sno <> pc.sno  AND pc.cloccode <> 601000000) as vice_srno, " +
+                            "case when pc.oldloccode=pc.cloccode and pc.cdesgcode = 9056  AND pc.cloccode <> 601000000 then 1 else 0 end as already_occ_post " +
                             "from cadre.propcadrmap pc left outer join cadre.cadrmap cm on pc.proposed_rowno = cm.rowno where propno = {0} order by sno", PRONO);
         ds = OraDBConnection.GetData(sql);
         foreach (DataRow drow in ds.Tables[0].Rows)
