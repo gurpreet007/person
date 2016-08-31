@@ -196,6 +196,7 @@ public partial class frmproposal : System.Web.UI.Page
                 //case "9056":
                 case "9057":
                 case "9060":
+                case "9734":
                     dcode = " in (9056,9057) ";
                     break;
                 default:
