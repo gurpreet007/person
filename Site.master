@@ -41,6 +41,8 @@
                             </asp:MenuItem>
                             <asp:MenuItem NavigateUrl="~/frmBigCC.aspx" Text="BigCC" Value="BigCC">
                             </asp:MenuItem>
+                            <asp:MenuItem NavigateUrl="~/Disp.aspx" Text="Upload Disp" Value="Upload Disp">
+                            </asp:MenuItem>
                         </asp:MenuItem>
                         <asp:MenuItem Text="Reports" Value="Reports">
                             <asp:MenuItem NavigateUrl="~/frmreports.aspx" Text="Combined Report" 

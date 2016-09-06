@@ -90,4 +90,40 @@ public class OraDBConnection
         gv.DataSource = GetData(sql);
         gv.DataBind();
     }
+    public static OracleConnection ConnectionOpen()
+    {
+        OracleConnection con = new OracleConnection(OraDBConnection.constr);
+        try
+        {
+            con.Open();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+        return con;
+    }
+    public static void ConnectionClose(OracleConnection con)
+    {
+        con.Close();
+        con.Dispose();
+    }
+    public static Boolean ExecQryOnConnection(OracleConnection con, string sql)
+    {
+        OracleCommand cmd = new OracleCommand(sql, con);
+
+        try
+        {
+            cmd.ExecuteNonQuery();
+        }
+        catch (Exception e)
+        {
+            throw e;
+        }
+        finally
+        {
+            cmd.Dispose();
+        }
+        return true;
+    }
 }
