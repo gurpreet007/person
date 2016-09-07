@@ -1316,17 +1316,17 @@ public partial class frmproposal : System.Web.UI.Page
         string str_propno = Session["proposalno"] as string;
         if (str_propno == null)
         {
-            //Response.Redirect("Login.aspx");
+            Response.Redirect("Login.aspx");
             return;
         }
         PRONO = int.Parse(str_propno);
         lblProposalName.Text = Session["proposalname"].ToString() + " (" + Session["proposaldate"].ToString() + ")";
-        BypassLogin();
+        //BypassLogin();
         if (!IsPostBack)
         {
             if ((Session["loginy"] == null) || (Session["loginy"].ToString() != "1"))
             {
-                //Response.Redirect("Login.aspx");
+                Response.Redirect("Login.aspx");
                 return;
             }
             lblInfo.Text = "";
@@ -1349,7 +1349,8 @@ public partial class frmproposal : System.Web.UI.Page
             //txtName.Visible = false;
             //txtLoc.Visible = false;
 
-            string sqlPropLine = "select proplinemode, proplinetext, LASTLINEMODE, LASTLINETEXT,bignote,bigcc from cadre.tp_proposals where pno = " + PRONO;
+            string sqlPropLine = "select status, proplinemode, proplinetext, lastlinemode, lastlinetext, "+
+                "bignote, bigcc, oonum, to_char(oodate,'dd-Mon-yyyy') as oodate, endonum from cadre.tp_proposals where pno = " + PRONO;
             DataRow drow = OraDBConnection.GetData(sqlPropLine).Tables[0].Rows[0];
             if (drow["proplinemode"].ToString() == "A")
             {
@@ -1373,8 +1374,14 @@ public partial class frmproposal : System.Web.UI.Page
             }
 
             //check if already saved
-            string sql = "select status from cadre.tp_proposals where pno = " + PRONO;
-            btnSave.Enabled = !(OraDBConnection.GetScalar(sql) == "S");
+            btnSave.Enabled = !(drow["status"].ToString() == "S");
+
+            txtOoNum.Text = drow["oonum"].ToString();
+            txtOoDate.Text = drow["oodate"].ToString();
+            txtEndorsNo.Text = drow["endonum"].ToString();
+
+            //string sql = "select status from cadre.tp_proposals where pno = " + PRONO;
+            //btnSave.Enabled = !(OraDBConnection.GetScalar(sql) == "S");
 
             FillBigNotesandCC();
             if (drow["bignote"].ToString() != "")
@@ -1387,7 +1394,6 @@ public partial class frmproposal : System.Web.UI.Page
             }
             FillOutstandings();
         }
-
         FillGrid();
     }
     protected void txtLocFilter_TextChanged(object sender, EventArgs e)
@@ -1647,6 +1653,10 @@ public partial class frmproposal : System.Web.UI.Page
     {
         if (CheckOONum())
         {
+            //save oonum and oodate
+            OraDBConnection.ExecQry(
+                string.Format("update cadre.tp_proposals set oonum='{0}',oodate='{1}',endonum='{2}' where pno={3}",
+                txtOoNum.Text, txtOoDate.Text, txtEndorsNo.Text, PRONO));
             MakeReport(true);
         }
     }
