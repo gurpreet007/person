@@ -100,6 +100,8 @@
             <br />
             <asp:TextBox ID="txtDispRight" runat="server" TextMode="MultiLine" CssClass="divpropose unwatermarked"></asp:TextBox>
             <br />
+            <asp:TextBox ID="txtSysRemarks" runat="server" TextMode="MultiLine" CssClass="divpropose unwatermarked"></asp:TextBox>
+            <br />
             <asp:Button ID="btnSelProposed" runat="server" Text="Select" onclick="btnSelProposed_Click"/>
         </div>
         <div id="grid">
@@ -225,6 +227,7 @@
             $('#txtPrvComment').watermark('Prv. Comments');
             $('#txtDispLeft').watermark('Left Text (Optional)');
             $('#txtDispRight').watermark('Right Text (Optional)');
+            $('#txtSysRemarks').watermark('Place for System Remarks');
             $('#txtSno').watermark('Serial No. (Optional)').inputmask({ "mask": "9", "repeat": "3", "greedy": false });
             $('#txtOoNum').watermark('O/o Number');
             $('#txtOoDate').watermark('O/o Date');

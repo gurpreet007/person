@@ -386,7 +386,7 @@ public partial class frmproposal : System.Web.UI.Page
     private void ClearRightFields()
     {
         //show newEmpid textbox only if non-gaz id is selected
-        txtNewEmpid.Visible = !(hidEmpID.Value.StartsWith("10"));
+        txtNewEmpid.Visible = !(hidEmpID.Value.StartsWith("10") || hidEmpID.Value.StartsWith("11"));
         txtLocFilter.Text = string.Empty;
         txtCLoc.Text = string.Empty;
         txtCDesg.Text = string.Empty;
@@ -400,7 +400,14 @@ public partial class frmproposal : System.Web.UI.Page
         txtPrvComment.Text = string.Empty;
         txtDispLeft.Text = string.Empty;
         txtDispRight.Text = string.Empty;
+        txtSysRemarks.Text = string.Empty;
         cbOwnInterest.Checked = false;
+
+        //lblInfoName.Text = string.Empty;
+        //lblInfoDesg.Text = string.Empty;
+        //lblInfoWLoc.Text = string.Empty;
+        //lblInfoPCLoc.Text = string.Empty;
+        txtNewEmpid.Text = string.Empty;
         drpLocs.Items.Clear();
     }
     private bool isFilled(string row)
@@ -1450,6 +1457,7 @@ public partial class frmproposal : System.Web.UI.Page
         string prvComment = string.Empty;
         string displeft = txtDispLeft.Text;
         string dispright = txtDispRight.Text;
+        string sysremarks = txtSysRemarks.Text;
         int flag_OwnInt = 0;
 
         //own intereset
@@ -1471,12 +1479,14 @@ public partial class frmproposal : System.Web.UI.Page
 
         //newEmpID should be either blank 
         //or contain an EmpID starting with 10 in case actual empid is not starting with 10
-        if (!empid.StartsWith("10"))
+        if (!(empid.StartsWith("10") || empid.StartsWith("11")))
         {
-            //empid is not starting with 10 so it is of JE, 
+            //empid is not starting with 10 or 11 so it is of JE, 
             //checking if newEmpID starts with 10
             //also checking for valid length (6 digits)
-            if (!(newEmpid.StartsWith("10") && newEmpid.Length == 6))
+            if (!(
+                (newEmpid.StartsWith("10") || newEmpid.StartsWith("11")) 
+                && newEmpid.Length == 6))
             {
                 Utils.ShowMessageBox(this, "Enter a valid New Empid");
                 return;
@@ -1595,10 +1605,10 @@ public partial class frmproposal : System.Web.UI.Page
             sql = string.Format("update cadre.propcadrmap set status='{0}', proposed_rowno = {1}, cloccode={2}," +
                                 "cdesgcode={3},remarks='{4}',sno={5}, newempid='{6}', last_event={7}, " +
                                 "olddesgcode={8}, oldloccode={9}, prvcomment = '{10}', " +
-                                "disp_left = '{11}', disp_right = '{12}', FLAG_OWNINT={13} " +
-                                "where empid={14} and propno={15}",
+                                "disp_left = '{11}', disp_right = '{12}', sysremarks='{13}',FLAG_OWNINT={14} " +
+                                "where empid={15} and propno={16}",
                                 status, prop_row, cloc, cdesg, remarks, sno, newEmpid, lastEvent,
-                                olddesgcode, oldloccode, prvComment, displeft, dispright,flag_OwnInt,
+                                olddesgcode, oldloccode, prvComment, displeft, dispright,sysremarks,flag_OwnInt,
                                 empid, propno);
             if (OraDBConnection.ExecQry(sql) == false)
             {
@@ -1848,7 +1858,7 @@ public partial class frmproposal : System.Web.UI.Page
             "proposed_rowno as newrowno, cadre.get_mapping_text_from_rowno(proposed_rowno) as newmaptext, " +
             "cloccode as newloccode, pshr.get_org(cloccode) as newloctext, " +
             "cdesgcode as newdesgcode, pshr.get_desg(cdesgcode) as newdesgtext," +
-            "remarks, sno, status, newempid, prvcomment,disp_left, disp_right, flag_ownint, i.photo2 as photo " +
+            "remarks, sno, status, newempid, prvcomment,disp_left, disp_right, flag_ownint,sysremarks,pm.newempid, i.photo2 as photo " +
             "from cadre.propcadrmap pm left outer join img_pshr.img i on i.empid = pm.empid " +
             "where pm.empid = " + empid + " and propno = " + PRONO;
 
@@ -1858,7 +1868,6 @@ public partial class frmproposal : System.Web.UI.Page
         hidStatus.Value = drow["status"].ToString();
         hidolddesgcode.Value = drow["olddesgcode"].ToString();
         hidsno.Value = drow["sno"].ToString();
-
         lblInfoName.Text = drow["name"].ToString();
         lblInfoDesg.Text = drow["olddesgtext"].ToString();
         lblInfoWLoc.Text = drow["oldloctext"].ToString();
@@ -1867,6 +1876,18 @@ public partial class frmproposal : System.Web.UI.Page
         hidWDesgCode.Value = drow["olddesgcode"].ToString();
         hidWLoccode.Value = drow["oldloccode"].ToString();
         hidPCRowNo.Value = drow["oldrowno"].ToString();
+
+        //showing new Empid textbox for only JE to AE promotion
+        if (!(hidEmpID.Value.StartsWith("10") || hidEmpID.Value.StartsWith("11")))
+        {
+            txtNewEmpid.Visible = true;
+            txtNewEmpid.Text = drow["newempid"].ToString();
+        }
+        else
+        {
+            txtNewEmpid.Visible = false;
+            txtNewEmpid.Text = "";
+        }
 
         //load photo
         if (!Convert.IsDBNull(drow["photo"]))
@@ -1889,6 +1910,7 @@ public partial class frmproposal : System.Web.UI.Page
         txtPrvComment.Text = drow["prvcomment"].ToString();
         txtDispLeft.Text = drow["disp_left"].ToString();
         txtDispRight.Text = drow["disp_right"].ToString();
+        txtSysRemarks.Text = drow["sysremarks"].ToString();
         cbOwnInterest.Checked = drow["flag_ownint"].ToString() == "1";
         lblInfo.Text = (drow["status"].ToString() == "P" ? "Promote " : "Transfer ") + drow["name"].ToString() + " to:";
     }
@@ -1950,7 +1972,7 @@ public partial class frmproposal : System.Web.UI.Page
         string empid = hidEmpID.Value;
 
         if (string.IsNullOrEmpty(empid)) return;
-        if (!empid.StartsWith("10"))
+        if (!(empid.StartsWith("10") || empid.StartsWith("11")))
         {
             Utils.ShowMessageBox(this, "Can only promote this officer");
             return;
@@ -2249,7 +2271,7 @@ public partial class frmproposal : System.Web.UI.Page
 
         //set flags
         sql = string.Format("select pc.empid, pc.sno, flag_ownint, decode(pc.status,'P',1,0) as flag_promo, nvl2(cm.empid,0,1) as flag_vacant," +
-                            "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND rownum < 2 AND pc2.sno <> pc.sno  AND pc.cloccode <> 601000000) as vice_srno, " +
+                            "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND pc.displacedid =pc2.empid AND rownum < 2 AND pc2.sno <> pc.sno  AND pc.cloccode <> 601000000) as vice_srno, " +
                             "case when pc.oldloccode=pc.cloccode and pc.cdesgcode = 9056  AND pc.cloccode <> 601000000 then 1 else 0 end as already_occ_post " +
                             "from cadre.propcadrmap pc left outer join cadre.cadrmap cm on pc.proposed_rowno = cm.rowno where propno = {0} order by sno", PRONO);
         ds = OraDBConnection.GetData(sql);
@@ -2307,4 +2329,5 @@ public partial class frmproposal : System.Web.UI.Page
         Utils.ShowMessageBox(this, "Order Uploaded");
     }
     #endregion
+    
 }
