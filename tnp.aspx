@@ -10,7 +10,9 @@
         #options {margin: auto; width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
         #prop_controls {margin: auto; width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
         #prev_controls {margin: auto;width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
-        #save_controls {margin: auto;width:90%; clear: both; padding:5px; background-color:Silver; color:White}
+        #genoo_controls {margin: auto;width:90%; clear: both; padding:5px; background-color:Silver; color:White;border-bottom-style:dotted}
+        #priv_controls {margin: auto;width:90%; clear: both; padding:5px; background-color:Silver; color:White}
+        #otp_controls {margin: auto;width:90%; clear: both; padding:5px; background-color:Silver; color:White;border-bottom-style:dotted}
         #hidd_fields {margin: auto;width:90%; clear: both; padding:5px; background-color:White; color:Black}
         #imgEmpPhoto {width: 138px; height: 170px}
         #grid {overflow:auto}
@@ -18,6 +20,7 @@
         #txtPropLine {width:80%; height:40px}
         #txtOoNum{width:150px;}
         #txtEndorsNo{width:150px;}
+        #txtOTP{width:60px}
         #lnkExport {margin-left:10px; margin-right:60px}
         #lnkImport {margin-right:10px}
         #locatePost{border-style:solid;border-width:1px}
@@ -184,8 +187,8 @@
               </asp:DropDownList>
             <asp:Button ID="btnPreview" runat="server" Text="Preview" onclick="btnPreview_Click"/>
         </div>
-        <div id="save_controls">
-            <strong>Save: </strong>
+        <div id="genoo_controls">
+            <strong>Generate O/o: </strong>
             <asp:TextBox ID="txtOoNum" runat="server" CssClass="divsave unwatermarked" 
                 Width="100px"></asp:TextBox>
             <asp:TextBox ID="txtOoDate" runat="server" CssClass="divsave unwatermarked"></asp:TextBox>
@@ -193,12 +196,24 @@
                 Width="100px"></asp:TextBox>
             <asp:Button ID="btnGenOO" runat="server" Text="Generate O/o" 
                 onclick="btnGenOO_Click"/>
+       </div>
+       <div id="otp_controls">
+            <strong>OTP Controls:</strong>
+            <asp:Button ID="btnSendOTP" runat="server" Text="Send OTP" 
+                onclick="btnSendOTP_Click"/>
+            <asp:TextBox ID="txtOTP" runat="server"></asp:TextBox>
+            <asp:Button ID="btnCheckOTP" runat="server" Text="Enable Privileged Controls" 
+                onclick="btnCheckOTP_Click" />
+        </div>
+        <div id="priv_controls" runat="server">
+        <strong>Privileged Controls: </strong>
             <asp:Button ID="btnSave" runat="server" Text="Save" 
                 onclick="btnSave_Click" OnClientClick="if ( !confirm('Are you sure you want to save this proposal?')) return false;"
                 />
+            &nbsp;&nbsp;&nbsp;
             <asp:Button ID="btnUpload" runat="server" Text="Upload" 
                 onclick="btnUpload_Click" 
-                OnClientClick="if ( !confirm('Are you sure you want to upload this proposal?')) return false;" Visible="False"
+                OnClientClick="if ( !confirm('Are you sure you want to upload this proposal?')) return false;"
                 />
         </div>
         <div id="hidd_fields">

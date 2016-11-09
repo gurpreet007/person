@@ -5,6 +5,7 @@ using System.Linq;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+using CrystalDecisions.Shared;
 
 public partial class frmproposalmenu : System.Web.UI.Page
 {
@@ -26,14 +27,33 @@ public partial class frmproposalmenu : System.Web.UI.Page
     {
         string sql;
         DataSet ds;
-        sql = "select pno as \"Proposal_No\",pname as \"Proposal_Name\", " +
-                "to_char(pdate,'DD-Mon-YYYY') as \"Creation_Date\" , "+
-                "(select count(*) from cadre.propcadrmap where propno = pno) as entry_count,oonum " +
+        if (rbStatus.SelectedValue == "U")
+        {
+            sql = "select pno as \"Proposal_No\",pname as \"Proposal_Name\", " +
+                "to_char(pdate,'DD-Mon-YYYY') as \"Creation_Date\" , " +
+                "(select count(*) from cadre.propcadrmap where propno = pno) as entry_count" +
                 " from cadre.tp_proposals " +
                 " WHERE status='" + rbStatus.SelectedValue + "' order by pno";
-        ds = OraDBConnection.GetData(sql);
-        gvProposals.DataSource = ds;
-        gvProposals.DataBind();
+            ds = OraDBConnection.GetData(sql);
+            gvProposals.DataSource = ds;
+            gvProposals.DataBind();
+            gvProposals.Visible = true;
+            gvProposals_Saved.Visible = false;
+        }
+        else
+        {
+            sql = "select pno as \"Proposal_No\",pname as \"Proposal_Name\", " +
+                "to_char(pdate,'DD-Mon-YYYY') as \"Creation_Date\" , " +
+                "(select count(*) from cadre.propcadrmap where propno = pno) as entry_count,oonum, " +
+                "to_char(oodate,'dd-Mon-yyyy') as oodate " +
+                " from cadre.tp_proposals " +
+                " WHERE status='" + rbStatus.SelectedValue + "' order by pno";
+            ds = OraDBConnection.GetData(sql);
+            gvProposals_Saved.DataSource = ds;
+            gvProposals_Saved.DataBind();
+            gvProposals.Visible = false;
+            gvProposals_Saved.Visible = true;
+        }
     }
     protected void btncproposal_Click(object sender, EventArgs e)
     {
@@ -260,6 +280,73 @@ public partial class frmproposalmenu : System.Web.UI.Page
         ds.WriteXml(filepath);
         //Utils.DownloadFile(filepath, false, "text/xml");
         Utils.DownloadFile(filepath, true);
+    }
+    protected void lnkDownload_Click(object sender, EventArgs e)
+    {
+        string oonum = string.Empty;
+        string oodate = string.Empty;
+        string endono = string.Empty;
+        string notes = "1";
+        string propno = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[1].Text;
+        string bignote = string.Empty;
+        string bigcc = string.Empty;
+
+        string sql = "SELECT m.sno,  p.OONUM  AS oonum1,  to_char(p.OODATE,'dd-MM-yyyy')  AS oodate1,  '1' AS notes,  p.ENDONUM  AS endono,10  AS fsize," +
+              "(SELECT COUNT(*) FROM cadre.propcadrmap WHERE propno = 163  )                                                                   AS TotCount," +
+              "(SELECT COUNT(*) FROM cadre.propcadrmap WHERE status = 'P' AND propno = 163  )                                                  AS PCount," +
+              "pshr.get_fullname(e.empid)                                                                                                      AS fullname," +
+              "TO_CHAR(e.empid)                                                                                                                AS empid," +
+              "TO_CHAR(e.dob,'dd-mm-yyyy')                                                                                                     AS dob," +
+              "pshr.get_post(e.cloccode)                                                                                                       AS old_work_loc," +
+              "e.cloccode                                                                                                                      AS old_work_loccode," +
+              "pshr.get_desg(e.cdesgcode)                                                                                                      AS old_work_desg," +
+              "e.cdesgcode                                                                                                                     AS old_work_desgcode," +
+              "DECODE(m.rowno,0,pshr.get_post(e.cloccode), pshr.get_post(cadre.get_lcode_rno(m.rowno)))                                        AS old_pc_loc," +
+              "DECODE(m.rowno,0,e.cloccode, cadre.get_lcode_rno(m.rowno))                                                                      AS old_pc_loccode," +
+              "DECODE(m.rowno,0,pshr.get_desg(e.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.rowno)))                                       AS old_pc_desg," +
+              "DECODE(m.rowno,0,e.cdesgcode, cadre.get_dcode_rno(m.rowno))                                                                     AS old_pc_desgcode," +
+              "DECODE(m.rowno,0,'0', cadre.get_indx_rno(m.rowno))                                                                              AS old_pc_indx," +
+              "cadre.get_org_plants(m.cloccode)                                                                                                AS new_work_loc," +
+              "m.cloccode                                                                                                                      AS new_work_loccode," +
+              "pshr.get_desg(m.cdesgcode)                                                                                                      AS new_work_desg," +
+              "m.cdesgcode                                                                                                                     AS new_work_desgcode," +
+              "DECODE(LENGTH(m.proposed_rowno),9,pshr.get_post(m.proposed_rowno), cadre.get_org_plants(cadre.get_lcode_rno(m.proposed_rowno))) AS new_pc_loc," +
+              "DECODE(LENGTH(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno))                                      AS new_pc_loccode," +
+              "DECODE(m.proposed_rowno,0,pshr.get_desg(m.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno)))                     AS new_pc_desg," +
+              "DECODE(m.proposed_rowno,0,m.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                                                   AS new_pc_desgcode," +
+              "cadre.get_indx_rno(m.proposed_rowno)                                                                                            AS new_pc_indx," +
+              "(select data from cadre.bignotes where name = p.bignote)                                                                        AS BIGNOTE," +
+              "(select data from cadre.bigcc where name = p.bigcc)                                                                             AS BIGCC," +
+              "m.sysremarks" +
+              "|| m.remarks                                                                                                                    AS remarks," +
+              "'G'                                                                                                                             AS grp," +
+              "m.propno," +
+              "TO_CHAR(m.newempid)                                                                                                             AS newempid," +
+              "m.status," +
+              "m.disp_left," +
+              "m.disp_right," +
+              "pshr.get_soccat(e.empid)                                                                                                        AS categ " +
+            "FROM pshr.empperso e," +
+              "cadre.propcadrmap m," +
+              "cadre.tp_proposals p " +
+            "WHERE e.empid     =m.empid " +
+            "AND m.propno = p.pno " +
+            "AND m.status     IS NOT NULL " +
+            "AND M.STATUS NOT IN ('S','V') " +
+            "AND m.propno      =" + propno + " " +
+            "AND m.cloccode   IS NOT NULL " +
+            "ORDER BY sno";
+
+        System.Data.DataSet ds = OraDBConnection.GetData(sql);
+        string pdfPath;
+        pdfPath = Server.MapPath("office_orders\\" + oonum.Replace("\\", "").Replace("/", "") + "-BEG-I" + oodate + ".pdf");
+        CrystalReportSource1.Report.FileName = Server.MapPath("Reports\\rptposttrans.rpt");
+        CrystalReportSource1.ReportDocument.SetDataSource(ds.Tables[0]);
+        CrystalReportSource1.DataBind();
+
+        CrystalReportSource1.ReportDocument.ExportToDisk(ExportFormatType.PortableDocFormat, pdfPath);
+
+        Utils.DownloadFile(pdfPath);
     }
     protected void lnkDelete_Click(object sender, EventArgs e)
     {

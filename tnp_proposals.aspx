@@ -1,5 +1,7 @@
 ﻿<%@ Page Title="" Language="C#" MasterPageFile="~/Site.master" AutoEventWireup="true" CodeFile="tnp_proposals.aspx.cs" Inherits="frmproposalmenu" %>
 
+<%@ Register assembly="CrystalDecisions.Web, Version=13.0.2000.0, Culture=neutral, PublicKeyToken=692fbea5521e1304" namespace="CrystalDecisions.Web" tagprefix="CR" %>
+
 <asp:Content ID="Content1" ContentPlaceHolderID="HeadContent" Runat="Server">
     <style type="text/css">
         .style1
@@ -82,6 +84,17 @@
                     </Columns>
                     <SelectedRowStyle BackColor="#99CCFF" />
                 </asp:GridView>
+
+                <asp:GridView ID="gvProposals_Saved" runat="server">
+                    <Columns>
+                        <asp:TemplateField>
+                            <ItemTemplate>
+                                <asp:LinkButton ID="lnkDownload" runat="server" onclick="lnkDownload_Click">Download</asp:LinkButton>
+                            </ItemTemplate>
+                        </asp:TemplateField>
+                    </Columns>
+                    <SelectedRowStyle BackColor="#99CCFF" />
+                </asp:GridView>
             </td>
             <td>
                 &nbsp;</td>
@@ -150,6 +163,8 @@
                     <br />
                     <asp:Label ID="lblUpFile" runat="server"></asp:Label>
                 </asp:Panel>
+                <CR:CrystalReportSource ID="CrystalReportSource1" runat="server">
+                </CR:CrystalReportSource>
                 <br />
                 <br />
             </td>

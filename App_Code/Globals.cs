@@ -8,6 +8,41 @@ using System.Web;
 /// </summary>
 public static class Globals
 {
+    public static string TO_MOBILE
+    {
+        get
+        {
+            if (System.Environment.MachineName.ToUpper().Contains("SERVER"))
+            {
+                return "9646118786";
+            }
+            else
+            {
+                return "9646111018";
+            }
+        }
+    }
+    public static string TO_EMAIL
+    {
+        get
+        {
+            if (System.Environment.MachineName.ToUpper().Contains("SERVER"))
+            {
+                return "parvinderjit70@gmail.com";
+            }
+            else
+            {
+                return "gurpreet007@gmail.com";
+            }
+        }
+    }
+    public static string FROM_EMAIL
+    {
+        get
+        {
+            return "seitpspcl@gmail.com";
+        }
+    }
     public static string DIR_NUMS
     {
         get

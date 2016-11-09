@@ -34,13 +34,13 @@ public partial class frmproposal : System.Web.UI.Page
     {
         string sql;
         DataSet ds;
-      
+
         sql = "select a.* from (" +
               "select Sno,decode(status,'T','Transfer','P','Promotion') as Action," +
               "pshr.get_fullname(empid) as Name,EMPID, " +
               "case when last_event = 17 then 'On Reinstatement' else cadre.get_org_plants(oldloccode) end as \"Present Location\", " +
-              "disp_left as Left_Display, "+
-              "decode(length(proposed_rowno), 9,pshr.get_post(proposed_rowno), "+
+              "disp_left as Left_Display, " +
+              "decode(length(proposed_rowno), 9,pshr.get_post(proposed_rowno), " +
               "cadre.get_org_plants(cadre.loccode_from_rowno(proposed_rowno))) as \"Proposed PC Location\", " +
               "pshr.get_post(cloccode) as \"Proposed Location\"," +
               "pshr.get_desg(cdesgcode) as \"Proposed Designation\"," +
@@ -51,7 +51,7 @@ public partial class frmproposal : System.Web.UI.Page
               "pshr.get_fullname(empid) as Name,EMPID, " +
               "case when last_event = 17 then 'On Reinstatement' else cadre.get_org_plants(oldloccode) end as \"Present Location\", " +
               "disp_left as Left_Display, " +
-              "decode(length(proposed_rowno), 9,pshr.get_post(proposed_rowno), "+
+              "decode(length(proposed_rowno), 9,pshr.get_post(proposed_rowno), " +
               "cadre.get_org_plants(cadre.loccode_from_rowno(proposed_rowno))) as \"Proposed PC Location\", " +
               "cadre.get_org_plants(cloccode) as \"Proposed Location\"," +
               "pshr.get_desg(cdesgcode) as \"Proposed Designation\"," +
@@ -213,8 +213,8 @@ public partial class frmproposal : System.Web.UI.Page
         }
 
         //create filter expression
-        filterexp = (filter != "") ? string.Format(" and upper(locname) like upper('%{0}%')", filter.Replace(" ","%")) : "";
-        
+        filterexp = (filter != "") ? string.Format(" and upper(locname) like upper('%{0}%')", filter.Replace(" ", "%")) : "";
+
         if (status == "T")
         {
             if (vacfilter == "A" || vacfilter == "E")
@@ -232,7 +232,7 @@ public partial class frmproposal : System.Web.UI.Page
                 sql += string.Format("select pshr.get_desg(desgcode) as dname, indx, locabb as lname," +
                                         "'F' as stat, c.rowno as val, c.loccode, cm.empid as empid from cadre.cadr c,cadre.cadrmap cm, pshr.mast_loc ml where " +
                                         "desgcode {0} and (hia is null or hia = 0) and c.rowno in (select rowno from cadre.cadrmap) " +
-                                        "and c.loccode=ml.loccode and branch = {1} and c.rowno = cm.rowno {2}", dcode, branch,filterexp);
+                                        "and c.loccode=ml.loccode and branch = {1} and c.rowno = cm.rowno {2}", dcode, branch, filterexp);
             }
             if (vacfilter == "H")
             {
@@ -250,9 +250,9 @@ public partial class frmproposal : System.Web.UI.Page
         else if (status == "P")
         {
             //special handling in case of AAE -> show both AE and AEE sanctioned locations
-            string nextdesg = ((new string[] { "9499", "9500", "9535", "9544", "9067" , "9088", "9501", "9077", "9066"}).Contains(curdesg)) ? "9057,9056" : string.Empty;
-            
-            if(string.IsNullOrEmpty(nextdesg))
+            string nextdesg = ((new string[] { "9499", "9500", "9535", "9544", "9067", "9088", "9501", "9077", "9066" }).Contains(curdesg)) ? "9057,9056" : string.Empty;
+
+            if (string.IsNullOrEmpty(nextdesg))
             {
                 nextdesg = OraDBConnection.GetScalar("select nextdesg from cadre.nextdesg where desg = " + curdesg);
                 if (string.IsNullOrEmpty(nextdesg))
@@ -310,7 +310,7 @@ public partial class frmproposal : System.Web.UI.Page
         int cnt105 = 1;
         int cnt106 = 1;
         int cnt108 = 1;
-        
+
         ArrayList list103 = new ArrayList();
         ArrayList list104 = new ArrayList();
         ArrayList list105 = new ArrayList();
@@ -343,12 +343,12 @@ public partial class frmproposal : System.Web.UI.Page
             else if (loc_org == "105")
             {
                 sbDataText.Append(row["dname"]).Append('-').Append(cnt105++).Append(" at ").Append(name105).Append(" (").Append(row["stat"]).Append(") ").Append(row["empid"]);
-                back_color =  "background-color:Azure;";
+                back_color = "background-color:Azure;";
             }
             else if (loc_org == "106")
             {
                 sbDataText.Append(row["dname"]).Append('-').Append(cnt106++).Append(" at ").Append(name106).Append(" (").Append(row["stat"]).Append(") ").Append(row["empid"]);
-                back_color ="background-color:Beige;";
+                back_color = "background-color:Beige;";
             }
             else if (loc_org == "108")
             {
@@ -418,7 +418,7 @@ public partial class frmproposal : System.Web.UI.Page
     private bool isAlreadyProposed(string row, int propno)
     {
         string sql = string.Format("select count(*) from cadre.propcadrmap where proposed_rowno = {0} and empid <> {1} and propno={2}",
-            row, drpOfficer.SelectedValue,propno);
+            row, drpOfficer.SelectedValue, propno);
         return OraDBConnection.GetScalar(sql) == "1";
     }
     private bool isOtherRowUpdated(string row)
@@ -469,7 +469,7 @@ public partial class frmproposal : System.Web.UI.Page
         }
         drow = ds.Tables[0].Rows[0];
 
-        
+
         //check and get o/o date
         if (!Convert.IsDBNull(drow["oodate"].ToString()))
         {
@@ -480,7 +480,7 @@ public partial class frmproposal : System.Web.UI.Page
             //lblMsg.Text = "Invalid O/o Date";
             return;
         }
-        
+
         postrel = drow["postrel"].ToString();
         postjoin = drow["postjoin"].ToString();
         eventcode = drow["eventcode"].ToString();
@@ -540,7 +540,7 @@ public partial class frmproposal : System.Web.UI.Page
     }
     private bool Save()
     {
-        string empid, eventcode, cdesgcode, cloccode, proposed_rowno,oldrowno, newempid,lastevent;
+        string empid, eventcode, cdesgcode, cloccode, proposed_rowno, oldrowno, newempid, lastevent;
         string pcloccode, sancdesg, sancindx, sql, rstatus, remDate = string.Empty;
         string oldLoccode, oldDesgcode;
         bool ret = false;
@@ -557,19 +557,20 @@ public partial class frmproposal : System.Web.UI.Page
 
         string oonum = txtOoNum.Text;
         string oodate = txtOoDate.Text;
-        int[] leave_events = new int[]{1,2,3,4,5,6,7,8,9,62,63,86,98,44};
-        int[] retd_events = new int[]{11,12,13,14,15,16,89};
+        int[] leave_events = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 62, 63, 86, 87, 98, 44 };
+        int[] retd_events = new int[] { 11, 12, 13, 14, 15, 16, 89 };
+        int[] susp_events = new int[] { 75, 17, 22 };
 
         //check if any outstanding entry is pending
-        string out_count = OraDBConnection.GetScalar("select count(*) from cadre.propcadrmap where "+
-            "status in ('T','P') and proposed_rowno is null and propno="+PRONO);
+        string out_count = OraDBConnection.GetScalar("select count(*) from cadre.propcadrmap where " +
+            "status in ('T','P') and proposed_rowno is null and propno=" + PRONO);
         if (out_count != "0")
         {
             Utils.ShowMessageBox(this, "Outstanding entries are pending.");
             return false;
         }
 
-        
+
         ds = OraDBConnection.GetData("select * from cadre.propcadrmap where propno=" + this.PRONO.ToString());
         if (ds.Tables[0].Rows.Count < 1)
         {
@@ -610,7 +611,9 @@ public partial class frmproposal : System.Web.UI.Page
             cloccode = row["cloccode"].ToString();
 
             lastevent = row["last_event"].ToString();
-            int rel_skip = (leave_events.Contains(int.Parse(lastevent)))?1:0;
+            int rel_skip = (leave_events.Contains(int.Parse(lastevent)) 
+                            || susp_events.Contains(int.Parse(lastevent))) 
+                            ? 1 : 0;
 
             //if location is "On Leave" then set eventcode to LELS
             if (cloccode == "999999999")
@@ -708,7 +711,7 @@ public partial class frmproposal : System.Web.UI.Page
             if (rowType == rowTypes.LEAVE_RET_EVENT)
             {
                 //in case of leave event set cloccode = 999999999 (On Leave)
-                if(leave_events.Contains(int.Parse(eventcode)))
+                if (leave_events.Contains(int.Parse(eventcode)))
                 {
                     cloccode = "999999999";
                 }
@@ -733,7 +736,7 @@ public partial class frmproposal : System.Web.UI.Page
                    "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}', '{10}','{11}','{12}','{13}',{14},{14})",
                    empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "''");
             }
-            else if(rowType == rowTypes.NORMAL)
+            else if (rowType == rowTypes.NORMAL)
             {
                 //in case of normal location
                 sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, postjoin, eventcode, loccode, desgcode, newempid, oldloccode, olddesgcode, propno,last_event,rel_skip,status, date_rel_req, date_rel_accept) " +
@@ -783,7 +786,7 @@ public partial class frmproposal : System.Web.UI.Page
         string endono = "-";
         string notes = "1";
         string propno = this.PRONO.ToString();
-        string bignote=string.Empty;
+        string bignote = string.Empty;
         string bigcc = string.Empty;
 
         if (save)
@@ -834,11 +837,11 @@ public partial class frmproposal : System.Web.UI.Page
         string pdfPath;
         if (save)
         {
-            pdfPath = Server.MapPath("office_orders\\" + oonum.Replace("\\","").Replace("/","") + "-BEG-I" + oodate + ".pdf");
+            pdfPath = Server.MapPath("office_orders\\" + oonum.Replace("\\", "").Replace("/", "") + "-BEG-I" + oodate + ".pdf");
         }
         else
         {
-            pdfPath = Server.MapPath("office_orders\\preview-"+propno +"-"+ DateTime.Now.ToString("yyyyMMdd-HHmmssfff") + ".pdf");
+            pdfPath = Server.MapPath("office_orders\\preview-" + propno + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmssfff") + ".pdf");
         }
 
         CrystalReportSource1.Report.FileName = Server.MapPath("Reports\\rptposttrans.rpt");
@@ -940,7 +943,7 @@ public partial class frmproposal : System.Web.UI.Page
                     "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode," +
                     " DECODE(m.proposed_rowno,0,pshr.get_desg(m.cdesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
                     " DECODE(m.proposed_rowno,0,m.cdesgcode, cadre.get_dcode_rno(m.proposed_rowno))                               AS new_pc_desgcode, " +
-                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, pshr.get_soccat(e.empid) as categ, "+
+                    "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, pshr.get_soccat(e.empid) as categ, " +
                     "m.sysremarks || m.remarks as remarks, m.prvcomment, 'G' as grp,m.propno, m.newempid,m.status,m.disp_left, m.disp_right " +
                     "from pshr.empperso e, cadre.propcadrmap m where e.empid=m.empid and m.status is not null " +
                     " AND M.STATUS NOT IN ('S','V') and m.propno=" + propno +
@@ -1106,25 +1109,25 @@ public partial class frmproposal : System.Web.UI.Page
         ddBigCC.DataBind();
         ddBigCC.Items.Insert(0, new ListItem("Select CC", ""));
     }
-    private void SendSMS(string oonum, string oodate, string destPath="")
+    private void SendSMS(string oonum, string oodate, string destPath = "")
     {
         //only send sms if running on server
-        if (! System.Environment.MachineName.ToUpper().Contains("SERVER"))
+        if (!System.Environment.MachineName.ToUpper().Contains("SERVER"))
         {
             return;
         }
-        string sql = "select empid, phonecell from EMPADDR where empid in (select empid from CADRE.PROPCADRMAP where propno = "+PRONO+") and length(phonecell) >= 10";
+        string sql = "select empid, phonecell from EMPADDR where empid in (select empid from CADRE.PROPCADRMAP where propno = " + PRONO + ") and length(phonecell) >= 10";
         DataSet ds = OraDBConnection.GetData(sql);
         string msg;
         string dir_msg;
-        StringBuilder sbNums = new StringBuilder(50*10);
+        StringBuilder sbNums = new StringBuilder(50 * 10);
         bool hasPromotion = !(OraDBConnection.GetScalar(string.Format("select count(*) from cadre.chargereport where eventcode=28 and oonum='{0}'", oonum)) == "0");
         foreach (DataRow drow in ds.Tables[0].Rows)
         {
             sbNums.Append(drow["phonecell"].ToString());
             sbNums.Append(",");
         }
-        if(string.IsNullOrWhiteSpace(destPath))
+        if (string.IsNullOrWhiteSpace(destPath))
         {
             msg = string.Format("There is a change in your posting. Please see Services-I O/o No. {0} Dt. {1}.", oonum, oodate);
             dir_msg = string.Format("Respected Sir,\nO/o No. {0} Dated: {1} has been issued regarding {2}.\nThanks",
@@ -1136,7 +1139,7 @@ public partial class frmproposal : System.Web.UI.Page
             dir_msg = string.Format("Respected Sir,\nO/o No. {0} Dated: {1} has been issued regarding {2}. Direct Link: {3}.\nThanks",
                         oonum, oodate, (hasPromotion ? "Promotions, Postings and Transfers" : "Postings and Transfers"), destPath);
         }
-        
+
         //send message to officers
         if (libSMSPbGovt.SMS.SendSMS(sbNums.ToString(), msg, true))
         {
@@ -1161,18 +1164,18 @@ public partial class frmproposal : System.Web.UI.Page
     }
     private int GetViceRetiree(string empid, out string viceid, out string vicename, out string retdate)
     {
-        int retdays=-1;
+        int retdays = -1;
         viceid = string.Empty;
         vicename = string.Empty;
         retdate = string.Empty;
 
-        string sql = string.Format("select displacedid,pshr.get_fullname(displacedid ) as name,"+
-            "to_char(pshr.get_retddate(displacedid ),'dd-mm-YYYY') as Ret_Date, "+
-            "ceil(pshr.get_retddate(displacedid )-sysdate) as Ret_Days from "+
+        string sql = string.Format("select displacedid,pshr.get_fullname(displacedid ) as name," +
+            "to_char(pshr.get_retddate(displacedid ),'dd-mm-YYYY') as Ret_Date, " +
+            "ceil(pshr.get_retddate(displacedid )-sysdate) as Ret_Days from " +
             "CADRE.PROPCADRMAP where empid={0} and propno={1}", empid, PRONO);
         DataSet ds = OraDBConnection.GetData(sql);
 
-        if (! string.IsNullOrEmpty(ds.Tables[0].Rows[0]["displacedid"].ToString()))
+        if (!string.IsNullOrEmpty(ds.Tables[0].Rows[0]["displacedid"].ToString()))
         {
             viceid = ds.Tables[0].Rows[0]["displacedid"].ToString();
             vicename = ds.Tables[0].Rows[0]["name"].ToString();
@@ -1206,13 +1209,26 @@ public partial class frmproposal : System.Web.UI.Page
         foreach (DataRow drow in ds.Tables[0].Rows)
         {
             empid = drow["empid"].ToString();
-            sql += string.Format("insert into pshr.empdocs values"+
+            sql += string.Format("insert into pshr.empdocs values" +
                 "({0},'Postings and transfers','{1}',sysdate, '105225',sysdate,'{2}'); ",
-                empid,txtOoNum.Text,destPath);
+                empid, txtOoNum.Text, destPath);
         }
         sql += "END; ";
         OraDBConnection.ExecQry(sql);
         return destPath;
+    }
+    private string GetCode()
+    {
+        string s = "0123456789";
+        Random r = new Random();
+        StringBuilder sb = new StringBuilder(10);
+        int i;
+
+        for (i = 0; i < 6; i++)
+        {
+            sb.Append(s[r.Next(s.Length)]);
+        }
+        return sb.ToString();
     }
     #endregion
 
@@ -1336,6 +1352,8 @@ public partial class frmproposal : System.Web.UI.Page
                 Response.Redirect("Login.aspx");
                 return;
             }
+            Session["code"] = string.Empty;
+            btnSave.Enabled = btnUpload.Enabled = false;
             lblInfo.Text = "";
 
             //string sql = "update cadre.cadrmap set status=null, proposed_rowno=null,remarks=null";
@@ -1356,7 +1374,7 @@ public partial class frmproposal : System.Web.UI.Page
             //txtName.Visible = false;
             //txtLoc.Visible = false;
 
-            string sqlPropLine = "select status, proplinemode, proplinetext, lastlinemode, lastlinetext, "+
+            string sqlPropLine = "select status, proplinemode, proplinetext, lastlinemode, lastlinetext, " +
                 "bignote, bigcc, oonum, to_char(oodate,'dd-Mon-yyyy') as oodate, endonum from cadre.tp_proposals where pno = " + PRONO;
             DataRow drow = OraDBConnection.GetData(sqlPropLine).Tables[0].Rows[0];
             if (drow["proplinemode"].ToString() == "A")
@@ -1381,7 +1399,7 @@ public partial class frmproposal : System.Web.UI.Page
             }
 
             //check if already saved
-            btnSave.Enabled = !(drow["status"].ToString() == "S");
+            //btnSave.Enabled = !(drow["status"].ToString() == "S");
 
             txtOoNum.Text = drow["oonum"].ToString();
             txtOoDate.Text = drow["oodate"].ToString();
@@ -1485,7 +1503,7 @@ public partial class frmproposal : System.Web.UI.Page
             //checking if newEmpID starts with 10
             //also checking for valid length (6 digits)
             if (!(
-                (newEmpid.StartsWith("10") || newEmpid.StartsWith("11")) 
+                (newEmpid.StartsWith("10") || newEmpid.StartsWith("11"))
                 && newEmpid.Length == 6))
             {
                 Utils.ShowMessageBox(this, "Enter a valid New Empid");
@@ -1591,7 +1609,7 @@ public partial class frmproposal : System.Web.UI.Page
                                 "{11}, {12}, '{13}', '{14}', '{15}',{16})",
                                 empid, cur_row, status, prop_row, cloc,
                                 cdesg, remarks, sno, propno, newEmpid, lastEvent,
-                                olddesgcode, oldloccode, prvComment, displeft, dispright,flag_OwnInt);
+                                olddesgcode, oldloccode, prvComment, displeft, dispright, flag_OwnInt);
             if (OraDBConnection.ExecQry(sql) == false)
             {
                 Utils.ShowMessageBox(this, "Error inserting data in propcadrmap");
@@ -1608,7 +1626,7 @@ public partial class frmproposal : System.Web.UI.Page
                                 "disp_left = '{11}', disp_right = '{12}', sysremarks='{13}',FLAG_OWNINT={14} " +
                                 "where empid={15} and propno={16}",
                                 status, prop_row, cloc, cdesg, remarks, sno, newEmpid, lastEvent,
-                                olddesgcode, oldloccode, prvComment, displeft, dispright,sysremarks,flag_OwnInt,
+                                olddesgcode, oldloccode, prvComment, displeft, dispright, sysremarks, flag_OwnInt,
                                 empid, propno);
             if (OraDBConnection.ExecQry(sql) == false)
             {
@@ -1636,7 +1654,7 @@ public partial class frmproposal : System.Web.UI.Page
             if (!already_in_propcadrmap)
             {
                 sql = string.Format("insert into cadre.propcadrmap(empid,rowno,propno,status) values({0},{1},{2},'{3}')",
-                    outempid, prop_row, propno,status);
+                    outempid, prop_row, propno, status);
                 if (OraDBConnection.ExecQry(sql) == false)
                 {
                     Utils.ShowMessageBox(this, "Error inserting outstanding entry in propcadrmap");
@@ -2242,7 +2260,7 @@ public partial class frmproposal : System.Web.UI.Page
     }
     protected void lnkPastePost_Click(object sender, EventArgs e)
     {
-        if (Session["LOCATEPOSTVAL"] == null || drpLocs.Items.Count<1)
+        if (Session["LOCATEPOSTVAL"] == null || drpLocs.Items.Count < 1)
             return;
 
         string locateRow = Session["LOCATEPOSTVAL"].ToString();
@@ -2272,7 +2290,8 @@ public partial class frmproposal : System.Web.UI.Page
         //set flags
         sql = string.Format("select pc.empid, pc.sno, flag_ownint, decode(pc.status,'P',1,0) as flag_promo, nvl2(cm.empid,0,1) as flag_vacant," +
                             "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND pc.displacedid =pc2.empid AND rownum < 2 AND pc2.sno <> pc.sno  AND pc.cloccode <> 601000000) as vice_srno, " +
-                            "case when pc.oldloccode=pc.cloccode and pc.cdesgcode = 9056  AND pc.cloccode <> 601000000 then 1 else 0 end as already_occ_post " +
+                            "case when pc.oldloccode=pc.cloccode and pc.cdesgcode = 9056  AND pc.cloccode <> 601000000 then 1 else 0 end as already_occ_post, " +
+                            "CASE WHEN pc.last_event=17 THEN 1 ELSE 0 END AS reinst" +
                             "from cadre.propcadrmap pc left outer join cadre.cadrmap cm on pc.proposed_rowno = cm.rowno where propno = {0} order by sno", PRONO);
         ds = OraDBConnection.GetData(sql);
         foreach (DataRow drow in ds.Tables[0].Rows)
@@ -2282,26 +2301,29 @@ public partial class frmproposal : System.Web.UI.Page
             string sno = drow["sno"].ToString();
             string newline = Environment.NewLine;
             string sysRemarks = string.Empty;
-            string vicename=string.Empty;
-            string viceid=string.Empty;
+            string vicename = string.Empty;
+            string viceid = string.Empty;
             string retdate = string.Empty;
-            int retddays=-1;
+            int retddays = -1;
             bool flag_ownint = drow["flag_ownint"].ToString() == "1";
             bool flag_promo = drow["flag_promo"].ToString() == "1";
             bool flag_vacant = drow["flag_vacant"].ToString() == "1";
             bool flag_alr_occ = drow["already_occ_post"].ToString() == "1";
+            bool flag_reinst = drow["reinst"].ToString() == "1";
             retddays = GetViceRetiree(empid, out viceid, out vicename, out retdate);
             bool flag_vice_retdays = retddays != -1 && retddays <= 30;
 
+            if(flag_reinst)
+                sysRemarks += "* On Reinstatement" + newline;
             if (flag_promo)
                 sysRemarks += "* On Promotion" + newline;
             if (flag_vacant)
                 sysRemarks += "* Against a Vacant Post" + newline;
-            if(!String.IsNullOrWhiteSpace(vice_srno))
+            if (!String.IsNullOrWhiteSpace(vice_srno))
                 sysRemarks += "* Vice Sr. No. " + vice_srno + newline;
             if (flag_ownint)
                 sysRemarks += "* Own Interest " + newline;
-            if(flag_alr_occ)
+            if (flag_alr_occ)
                 sysRemarks += "* Already Occupied Post " + newline;
             if (flag_vice_retdays)
                 sysRemarks += string.Format("* Vice Er. {0} (Empid {1}) retiring on {2} {3}", vicename, viceid, retdate, newline);
@@ -2320,7 +2342,7 @@ public partial class frmproposal : System.Web.UI.Page
 
         if (!saved)
         {
-            Utils.ShowMessageBox(this,"Please save this proposal first.");
+            Utils.ShowMessageBox(this, "Please save this proposal first.");
             return;
         }
 
@@ -2328,6 +2350,28 @@ public partial class frmproposal : System.Web.UI.Page
         SendSMS(txtOoNum.Text, txtOoDate.Text, destPath);
         Utils.ShowMessageBox(this, "Order Uploaded");
     }
+    protected void btnSendOTP_Click(object sender, EventArgs e)
+    {
+        string code = GetCode();
+        Session["code"] = code;
+        libSMSPbGovt.SMS.SendSMS(Globals.TO_MOBILE, "Code to access privileged controls: " + code);
+        libSMSPbGovt.SMS.SendEmail(Globals.FROM_EMAIL, "PSPCL", Globals.TO_EMAIL, "Person Code", "Code to access privileged controls: " + code);
+        Utils.ShowMessageBox(this, "Code Sent on registered Mobile and Email");
+    }
+    protected void btnCheckOTP_Click(object sender, EventArgs e)
+    {
+        if (Session["code"] != null &&
+            Session["code"].ToString().Length > 0 &&
+            Session["code"].ToString() == txtOTP.Text)
+        {
+            btnSave.Enabled = true;
+            //btnUpload.Enabled = true;
+        }
+        else
+        {
+            btnSave.Enabled = btnUpload.Enabled = false;
+            Utils.ShowMessageBox(this, "Code doesn't match");
+        }
+    }
     #endregion
-    
 }
