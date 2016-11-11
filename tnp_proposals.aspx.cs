@@ -283,13 +283,8 @@ public partial class frmproposalmenu : System.Web.UI.Page
     }
     protected void lnkDownload_Click(object sender, EventArgs e)
     {
-        string oonum = string.Empty;
-        string oodate = string.Empty;
-        string endono = string.Empty;
-        string notes = "1";
+        string oonum = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[5].Text;
         string propno = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[1].Text;
-        string bignote = string.Empty;
-        string bigcc = string.Empty;
 
         string sql = "SELECT m.sno,  p.OONUM  AS oonum1,  to_char(p.OODATE,'dd-MM-yyyy')  AS oodate1,  '1' AS notes,  p.ENDONUM  AS endono,10  AS fsize," +
               "(SELECT COUNT(*) FROM cadre.propcadrmap WHERE propno = 163  )                                                                   AS TotCount," +
@@ -339,7 +334,7 @@ public partial class frmproposalmenu : System.Web.UI.Page
 
         System.Data.DataSet ds = OraDBConnection.GetData(sql);
         string pdfPath;
-        pdfPath = Server.MapPath("office_orders\\" + oonum.Replace("\\", "").Replace("/", "") + "-BEG-I" + oodate + ".pdf");
+        pdfPath = Server.MapPath("office_orders\\" + oonum.Replace("\\", "").Replace("/", "") + "-BEG-I.pdf");
         CrystalReportSource1.Report.FileName = Server.MapPath("Reports\\rptposttrans.rpt");
         CrystalReportSource1.ReportDocument.SetDataSource(ds.Tables[0]);
         CrystalReportSource1.DataBind();
