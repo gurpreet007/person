@@ -54,6 +54,8 @@
                             <asp:MenuItem NavigateUrl="~/frmreports.aspx" Text="Combined Report" 
                                 Value="Combined Report"></asp:MenuItem>
                             <asp:MenuItem Text="Vacancy" Value="Vacancy"></asp:MenuItem>
+                            <asp:MenuItem NavigateUrl="~/pplist.aspx" Text="PP List" Value="PP List">
+                            </asp:MenuItem>
                         </asp:MenuItem>
                         <asp:MenuItem NavigateUrl="~/frmfindemp.aspx" Text="Find Employee" 
                             Value="Find Employee"></asp:MenuItem>
