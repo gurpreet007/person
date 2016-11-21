@@ -681,7 +681,6 @@ public partial class frmreports : System.Web.UI.Page
     private void TestOPList()
     {
         string file = Server.MapPath("office_orders\\auto_oplist.xlsx");
-        bool retVal;
         if (File.Exists(file)) File.Delete(file);
         FileInfo newFile = new FileInfo(file);
         ExcelWorksheet sheet;
