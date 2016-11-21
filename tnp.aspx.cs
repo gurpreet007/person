@@ -196,7 +196,8 @@ public partial class frmproposal : System.Web.UI.Page
                 //case "9056":
                 case "9057":
                 case "9060":
-                case "9734":
+                //case "9734":
+                case "9401":
                     dcode = " in (9056,9057) ";
                     break;
                 default:
@@ -1766,10 +1767,11 @@ public partial class frmproposal : System.Web.UI.Page
                 return;
             }
 
-            //On promotion of CHD set working desg as "CHD ON TECH. TRAINING" code 9734
+            //On promotion of CHD set working desg as "CHD ON TECH. TRAINING" code 9734, (now mysteriously changed to 9401)
             if (hidWDesgCode.Value == "9066")
             {
-                txtCDesg.Text = "CHD ON TECH. TRAINING-9734";
+                //txtCDesg.Text = "CHD ON TECH. TRAINING-9734";
+                txtCDesg.Text = "CHD ON TECH. TRAINING-9401";
                 return;
             }
 
@@ -2291,7 +2293,7 @@ public partial class frmproposal : System.Web.UI.Page
         sql = string.Format("select pc.empid, pc.sno, flag_ownint, decode(pc.status,'P',1,0) as flag_promo, nvl2(cm.empid,0,1) as flag_vacant," +
                             "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND pc.displacedid =pc2.empid AND rownum < 2 AND pc2.sno <> pc.sno  AND pc.cloccode <> 601000000) as vice_srno, " +
                             "case when pc.oldloccode=pc.cloccode and pc.cdesgcode = 9056  AND pc.cloccode <> 601000000 then 1 else 0 end as already_occ_post, " +
-                            "CASE WHEN pc.last_event=17 THEN 1 ELSE 0 END AS reinst" +
+                            "CASE WHEN pc.last_event=17 THEN 1 ELSE 0 END AS reinst " +
                             "from cadre.propcadrmap pc left outer join cadre.cadrmap cm on pc.proposed_rowno = cm.rowno where propno = {0} order by sno", PRONO);
         ds = OraDBConnection.GetData(sql);
         foreach (DataRow drow in ds.Tables[0].Rows)
