@@ -34,6 +34,13 @@ public partial class SiteMaster : System.Web.UI.MasterPage
         }
         NavMenu.Visible = HttpContext.Current.User.Identity.IsAuthenticated;
     }
+    protected void NavigationMenu_MenuItemClick(Object sender, MenuEventArgs e)
+    {
+        if (e.Item.Text == "Vacancy")
+        {
+            Response.Redirect("/personnel/frmreports.aspx",false);
+        }
+    }
     protected void Page_Load(object sender, EventArgs e)
     {
         NavMenu.Visible = HttpContext.Current.User.Identity.IsAuthenticated;

@@ -26,7 +26,7 @@
             </div>  
             <div class="clear hideSkiplink">
                 <asp:Menu ID="NavMenu" runat="server" CssClass="menu" EnableViewState="false" 
-                    IncludeStyleBlock="false" Orientation="Horizontal">
+                    IncludeStyleBlock="false" Orientation="Horizontal" OnMenuItemClick="NavigationMenu_MenuItemClick">
                     <Items>
                         <asp:MenuItem Text="Actions" Value="Actions">
                             <asp:MenuItem NavigateUrl="~/DataEntry.aspx" Text="Data Entry" 
@@ -43,12 +43,17 @@
                             </asp:MenuItem>
                             <asp:MenuItem NavigateUrl="~/Disp.aspx" Text="Upload Disp" Value="Upload Disp">
                             </asp:MenuItem>
+							<asp:MenuItem NavigateUrl="~/frmCancel.aspx" Text="Cancel Office Order" 
+                                Value="Cancel"></asp:MenuItem>
                             <asp:MenuItem NavigateUrl="~/SMS.aspx" Text="Send SMS" Value="Send SMS">
                             </asp:MenuItem>
+                            <asp:MenuItem NavigateUrl="~/SenSet.aspx" Text="Set Seniority" 
+                                Value="Set Seniority"></asp:MenuItem>
                         </asp:MenuItem>
                         <asp:MenuItem Text="Reports" Value="Reports">
                             <asp:MenuItem NavigateUrl="~/frmreports.aspx" Text="Combined Report" 
                                 Value="Combined Report"></asp:MenuItem>
+                            <asp:MenuItem Text="Vacancy" Value="Vacancy"></asp:MenuItem>
                         </asp:MenuItem>
                         <asp:MenuItem NavigateUrl="~/frmfindemp.aspx" Text="Find Employee" 
                             Value="Find Employee"></asp:MenuItem>

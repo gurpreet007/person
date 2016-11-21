@@ -51,6 +51,7 @@ public partial class frmrptpplist : System.Web.UI.Page
             "h.odate, "+
             "md.hecode AS hecode, "+
             "p.branchcode, "+
+            "p.seniorityno as sen, " +
             "mb.branchtext " +
             "FROM pshr.empperso p, emphistory h, mast_categ mc, mast_desg md, mast_loc ml, mast_branch mb "+
             "where h.empid = p.empid "+
