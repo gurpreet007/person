@@ -626,6 +626,10 @@ public partial class frmproposal : System.Web.UI.Page
             proposed_rowno = row["proposed_rowno"].ToString();
             newempid = row["newempid"].ToString();
             oldLoccode = row["oldloccode"].ToString();
+            if (oldLoccode.StartsWith("601"))
+            {
+                rel_skip = 1;
+            }
             oldDesgcode = row["olddesgcode"].ToString();
             if (string.IsNullOrEmpty(proposed_rowno))
             {
@@ -930,7 +934,7 @@ public partial class frmproposal : System.Web.UI.Page
                     ddFSize.SelectedValue + " as fsize, " +
                     "(select count(*) from cadre.propcadrmap where propno = " + propno + ") TotCount, " +
                     "(select count(*) from cadre.propcadrmap where status = 'P' and propno = " + propno + ") PCount, " +
-                    " pshr.get_fullname(e.empid),to_char(e.empid) as empid,e.dob," +
+                    " pshr.get_fullname(e.empid),to_char(e.empid) as empid,to_char(e.dob,'dd-mm-yyyy') as dob," +
                     "pshr.get_post(e.cloccode) as old_work_loc,e.cloccode as old_work_loccode,pshr.get_desg(e.cdesgcode) as old_work_desg," +
                     "e.cdesgcode as old_work_desgcode," +
                     "DECODE(m.rowno,0,pshr.get_post(e.cloccode), pshr.get_post(cadre.get_lcode_rno(m.rowno))) AS old_pc_loc," +
