@@ -92,6 +92,11 @@
                                 <asp:LinkButton ID="lnkDownload" runat="server" onclick="lnkDownload_Click">Download</asp:LinkButton>
                             </ItemTemplate>
                         </asp:TemplateField>
+                        <asp:TemplateField>
+                            <ItemTemplate>
+                                <asp:LinkButton ID="lnkDownloadPrv" runat="server" onclick="lnkDownloadPrv_Click">Download_Prvt</asp:LinkButton>
+                            </ItemTemplate>
+                        </asp:TemplateField>
                     </Columns>
                     <SelectedRowStyle BackColor="#99CCFF" />
                 </asp:GridView>

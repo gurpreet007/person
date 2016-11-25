@@ -765,7 +765,7 @@ public partial class frmreports : System.Web.UI.Page
             "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode,"+
             "DECODE(m.rowno,0,pshr.get_desg(m.olddesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, "+
             "DECODE(m.rowno,0,m.olddesgcode, cadre.get_dcode_rno(m.proposed_rowno)) AS new_pc_desgcode, "+
-            "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.remarks,'G' as grp,m.propno, to_char(m.newempid) as newempid, m.status, "+
+            "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.sysremarks || m.remarks as remarks,'G' as grp,m.propno, to_char(m.newempid) as newempid, m.status, "+
             "m.disp_left, m.disp_right, pshr.get_soccat(m.empid) as categ "+
             "from cadre.propcadrmap m, cadre.tp_proposals tpp  "+
             "where m.propno = tpp.pno and m.status is not null AND M.STATUS NOT IN ('S','V') "+
@@ -801,7 +801,7 @@ public partial class frmreports : System.Web.UI.Page
             "decode(length(m.proposed_rowno),9,m.proposed_rowno, cadre.get_lcode_rno(m.proposed_rowno)) AS new_pc_loccode," +
             "DECODE(m.rowno,0,pshr.get_desg(m.olddesgcode), pshr.get_desg(cadre.get_dcode_rno(m.proposed_rowno))) AS new_pc_desg, " +
             "DECODE(m.rowno,0,m.olddesgcode, cadre.get_dcode_rno(m.proposed_rowno)) AS new_pc_desgcode, " +
-            "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.remarks,'G' as grp,m.propno, to_char(m.newempid) as newempid, m.status, " +
+            "cadre.get_indx_rno(m.proposed_rowno) as new_pc_indx, m.sysremarks || m.remarks as remarks,'G' as grp,m.propno, to_char(m.newempid) as newempid, m.status, " +
             "m.disp_left, m.disp_right, m.prvcomment, pshr.get_soccat(m.empid) as categ " +
             "from cadre.propcadrmap m, cadre.tp_proposals tpp  " +
             "where m.propno = tpp.pno and m.status is not null AND M.STATUS NOT IN ('S','V') " +
