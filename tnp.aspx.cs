@@ -1439,13 +1439,29 @@ public partial class frmproposal : System.Web.UI.Page
         drpLocs.SelectedIndex = 0;
         if (filter.Length == 6 && new Regex("1[0-9]{5}").IsMatch(filter))
         {
+            string empid = filter;
+            //get the working loc and working desg, to cover cases where working loc is different from pc loc.
+            DataRow drow = OraDBConnection.GetData("select pshr.get_org(cloccode) as loc, cloccode, "+
+                                                    "pshr.get_desg(cdesgcode) as desg, cdesgcode "+
+                                                    "from empperso where empid = " + empid).Tables[0].Rows[0];
+
             foreach (ListItem litem in drpLocs.Items)
             {
-                if (litem.Text.Contains(filter))
+                if (litem.Text.Contains(empid))
                 {
                     drpLocs.ClearSelection();
                     litem.Selected = true;
-                    drpLocs_SelectedIndexChanged(null, null);
+                    //check if loc and pcloc are same
+                    string loc = OraDBConnection.GetScalar("select loccode from cadre.cadr where rowno = " + litem.Value);
+                    if (loc != drow["cloccode"].ToString())
+                    {
+                        txtCLoc.Text = drow["loc"].ToString() + "-" + drow["cloccode"].ToString();
+                        txtCDesg.Text = drow["desg"].ToString() + "-" + drow["cdesgcode"].ToString();
+                    }
+                    else
+                    {
+                        drpLocs_SelectedIndexChanged(null, null);
+                    }
                     return;
                 }
             }
