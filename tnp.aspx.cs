@@ -626,7 +626,8 @@ public partial class frmproposal : System.Web.UI.Page
             proposed_rowno = row["proposed_rowno"].ToString();
             newempid = row["newempid"].ToString();
             oldLoccode = row["oldloccode"].ToString();
-            if (oldLoccode.StartsWith("601"))
+            if (oldLoccode.StartsWith("6") ||
+                oldLoccode.StartsWith("7"))
             {
                 rel_skip = 1;
             }
@@ -1235,6 +1236,27 @@ public partial class frmproposal : System.Web.UI.Page
         }
         return sb.ToString();
     }
+    private void DoPropSaves()
+    {
+        string sql = string.Empty;
+
+        sql = string.Format("update cadre.tp_proposals set stamp = '{0}' where pno = '{1}'", 
+            ddApprover.SelectedValue,PRONO);
+        OraDBConnection.ExecQry(sql);
+
+        if (ddPropLineMode.SelectedIndex == 1)
+        {
+            sql = string.Format("update cadre.tp_proposals set proplinemode = 'M', proplinetext = '{0}' where pno = '{1}'",
+                txtPropLine.Text, PRONO);
+            OraDBConnection.ExecQry(sql);
+        }
+        if (ddPropLastLineMode.SelectedIndex == 1)
+        {
+            sql = string.Format("update cadre.tp_proposals set LASTLINEMODE = 'M', LASTLINETEXT = '{0}' where pno = '{1}'",
+                txtPropLastLine.Text, PRONO);
+            OraDBConnection.ExecQry(sql);
+        }
+    }
     #endregion
 
     #region WebMethods
@@ -1380,7 +1402,7 @@ public partial class frmproposal : System.Web.UI.Page
             //txtLoc.Visible = false;
 
             string sqlPropLine = "select status, proplinemode, proplinetext, lastlinemode, lastlinetext, " +
-                "bignote, bigcc, oonum, to_char(oodate,'dd-Mon-yyyy') as oodate, endonum from cadre.tp_proposals where pno = " + PRONO;
+                "bignote, bigcc, oonum, to_char(oodate,'dd-Mon-yyyy') as oodate, endonum, stamp from cadre.tp_proposals where pno = " + PRONO;
             DataRow drow = OraDBConnection.GetData(sqlPropLine).Tables[0].Rows[0];
             if (drow["proplinemode"].ToString() == "A")
             {
@@ -1401,6 +1423,17 @@ public partial class frmproposal : System.Web.UI.Page
                 ddPropLastLineMode.SelectedIndex = 1;
                 txtPropLastLine.Text = drow["LASTLINETEXT"].ToString();
                 txtPropLastLine.Visible = true;
+            }
+
+            //set stamp
+            string stamp = drow["stamp"].ToString();
+            if (String.IsNullOrEmpty(stamp))
+            {
+                ddApprover.SelectedIndex = 0;
+            }
+            else
+            {
+                ddApprover.SelectedIndex = ddApprover.Items.IndexOf(ddApprover.Items.FindByValue(stamp));
             }
 
             //check if already saved
@@ -1842,20 +1875,7 @@ public partial class frmproposal : System.Web.UI.Page
     }
     protected void btnPrintProposal_Click(object sender, EventArgs e)
     {
-        string sql = string.Empty;
-        if (ddPropLineMode.SelectedIndex == 1)
-        {
-            sql = string.Format("update cadre.tp_proposals set proplinemode = 'M', proplinetext = '{0}' where pno = '{1}'",
-                txtPropLine.Text, PRONO);
-            OraDBConnection.ExecQry(sql);
-        }
-        if (ddPropLastLineMode.SelectedIndex == 1)
-        {
-            sql = string.Format("update cadre.tp_proposals set LASTLINEMODE = 'M', LASTLINETEXT = '{0}' where pno = '{1}'",
-                txtPropLastLine.Text, PRONO);
-            OraDBConnection.ExecQry(sql);
-        }
-
+        DoPropSaves();
         Makeproreport();
     }
     protected void drpFilter_SelectedIndexChanged(object sender, EventArgs e)
@@ -2095,19 +2115,7 @@ public partial class frmproposal : System.Web.UI.Page
     }
     protected void btnPDFProp_Click(object sender, EventArgs e)
     {
-        string sql = string.Empty;
-        if (ddPropLineMode.SelectedIndex == 1)
-        {
-            sql = string.Format("update cadre.tp_proposals set proplinemode = 'M', proplinetext = '{0}' where pno = '{1}'",
-                txtPropLine.Text, PRONO);
-            OraDBConnection.ExecQry(sql);
-        }
-        if (ddPropLastLineMode.SelectedIndex == 1)
-        {
-            sql = string.Format("update cadre.tp_proposals set LASTLINEMODE = 'M', LASTLINETEXT = '{0}' where pno = '{1}'",
-                txtPropLastLine.Text, PRONO);
-            OraDBConnection.ExecQry(sql);
-        }
+        DoPropSaves();
         Makeproreport_pc();
     }
     protected void btnSave_Click(object sender, EventArgs e)
@@ -2313,7 +2321,9 @@ public partial class frmproposal : System.Web.UI.Page
         sql = string.Format("select pc.empid, pc.sno, flag_ownint, decode(pc.status,'P',1,0) as flag_promo, nvl2(cm.empid,0,1) as flag_vacant," +
                             "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND pc.displacedid =pc2.empid AND rownum < 2 AND pc2.sno <> pc.sno) as vice_srno, " +
                             "case when pc.oldloccode=pc.cloccode and pc.cdesgcode = 9056  AND pc.cloccode <> 601000000 then 1 else 0 end as already_occ_post, " +
-                            "CASE WHEN pc.last_event=17 THEN 1 ELSE 0 END AS reinst " +
+                            "CASE WHEN pc.last_event=17 THEN 1 ELSE 0 END AS reinst, " +
+                            "(select pshr.get_fullname(empid) from cadre.propcadrmap pc2 where pc2.PROPOSED_ROWNO = pc.PROPOSED_ROWNO " +
+                            "and status <> 'JRA' and pc2.propno!={0} and pc.PROPOSED_ROWNO>0 and rownum<=1) ut_emp " +
                             "from cadre.propcadrmap pc left outer join cadre.cadrmap cm on pc.proposed_rowno = cm.rowno where propno = {0} order by sno", PRONO);
         ds = OraDBConnection.GetData(sql);
         foreach (DataRow drow in ds.Tables[0].Rows)
@@ -2321,6 +2331,7 @@ public partial class frmproposal : System.Web.UI.Page
             string vice_srno = drow["vice_srno"].ToString();
             string empid = drow["empid"].ToString();
             string sno = drow["sno"].ToString();
+            string ut_emp = drow["ut_emp"].ToString();
             string newline = Environment.NewLine;
             string sysRemarks = string.Empty;
             string vicename = string.Empty;
@@ -2332,6 +2343,7 @@ public partial class frmproposal : System.Web.UI.Page
             bool flag_vacant = drow["flag_vacant"].ToString() == "1";
             bool flag_alr_occ = drow["already_occ_post"].ToString() == "1";
             bool flag_reinst = drow["reinst"].ToString() == "1";
+            bool flag_undertrans = !String.IsNullOrEmpty(drow["ut_emp"].ToString());
             retddays = GetViceRetiree(empid, out viceid, out vicename, out retdate);
             bool flag_vice_retdays = retddays != -1 && retddays <= 30;
 
@@ -2349,6 +2361,8 @@ public partial class frmproposal : System.Web.UI.Page
                 sysRemarks += "* Already Occupied Post " + newline;
             if (flag_vice_retdays)
                 sysRemarks += string.Format("* Vice Er. {0} (Empid {1}) retiring on {2} {3}", vicename, viceid, retdate, newline);
+            if (flag_undertrans)
+                sysRemarks += string.Format("* Vacant vide Er. {0} u/t", ut_emp);
 
             sql = string.Format("update cadre.propcadrmap set sysremarks = '{0}' where empid = '{1}' and propno = '{2}'", sysRemarks, empid, PRONO);
             OraDBConnection.ExecQry(sql);
