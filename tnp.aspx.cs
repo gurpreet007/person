@@ -216,7 +216,7 @@ public partial class frmproposal : System.Web.UI.Page
         //create filter expression
         filterexp = (filter != "") ? string.Format(" and upper(locname) like upper('%{0}%')", filter.Replace(" ", "%")) : "";
 
-        if (status == "T")
+        if (status == "T" || status == "CPC")
         {
             if (vacfilter == "A" || vacfilter == "E")
             {
@@ -1257,6 +1257,112 @@ public partial class frmproposal : System.Web.UI.Page
             OraDBConnection.ExecQry(sql);
         }
     }
+    private void HandleChangePC(string empid, string newpc)
+    {
+        string sql = string.Empty;
+        string bn_name = PRONO.ToString() + "_bg";
+        string tags = "auto, prono, cpc";
+        string data = string.Empty;
+        string emp_name = string.Empty;
+        string loc_name = string.Empty;
+
+        sql = string.Format("insert into cadre.saveactions(propno, empid, action, new_pc_row) values ({0},{1},'CPC',{2})",
+            PRONO, empid, newpc);
+        OraDBConnection.ExecQry(sql);
+
+        emp_name = OraDBConnection.GetScalar(string.Format("select pshr.get_fullname({0}) as name from dual", empid));
+        loc_name = OraDBConnection.GetScalar(string.Format("select cadre.GET_MAPPING_TEXT_FROM_ROWNO({0}) as name from dual", newpc));
+        data = string.Format("* The paycharge of Er. {0} ({1}) has been changed to {2} ", emp_name, empid, loc_name);
+
+        //make/appendto bignote
+        sql = string.Format("merge into cadre.bignotes B using " +
+                        "(select '{0}' as n, '{1}' as t, '{2}' as d , 'N' as ty from dual) D " +
+                        "on (B.name = D.n and B.type='N') " +
+                        "when matched then update set B.tags = D.t, B.data = B.data || '\n' || D.d " +
+                        "when not matched then insert (name, tags, data, type, addedon) values (D.n, D.t, D.d, D.ty, sysdate)"
+                        , bn_name, tags, data);
+        OraDBConnection.ExecQry(sql);
+
+        //Re-fill bignotes drop down
+        FillBigNotesandCC();
+
+        //select this bignote for the proposal
+        ddBigNotes.SelectedIndex = ddBigNotes.Items.IndexOf(ddBigNotes.Items.FindByText(bn_name));
+
+        //set this bignote as default for the proposal
+        sql = string.Format("update cadre.tp_proposals set bignote='{0}' where pno = '{1}'", bn_name, PRONO);
+        OraDBConnection.ExecQry(sql);
+
+        Utils.ShowMessageBox(this, "PC will be changed on Save. Big Note Created/Updated");
+    }
+    private void Do_SaveActions()
+    {
+        string sql = string.Empty;
+        DataSet ds;
+        sql = "select empid, action, new_pc_row, canprop from cadre.saveactions where propno = " + PRONO;
+        ds = OraDBConnection.GetData(sql);
+        string empid = string.Empty;
+        string action = string.Empty;
+        string newpcrow = string.Empty;
+        string canprop = string.Empty;
+        string pcloc = string.Empty;
+        string pcdesg = string.Empty;
+        string pcindx = string.Empty;
+        string oonum = txtOoNum.Text;
+        string oodate = txtOoDate.Text;
+        string event_smap = "102";
+        foreach (DataRow drow in ds.Tables[0].Rows)
+        {
+            empid = drow["empid"].ToString();
+            action = drow["action"].ToString();
+            if (action == "CPC")
+            {
+                newpcrow = drow["new_pc_row"].ToString();
+                //get the trifecta from newrowno
+                sql = "select loccode, desgcode, indx from cadre.cadr where rowno =" + newpcrow;
+                DataSet ds2 = OraDBConnection.GetData(sql);
+
+                if (ds2.Tables[0].Rows.Count != 1)
+                {
+                    //lMsg0.Text = "Unable to get join row in cadre";
+                    return;
+                }
+                DataRow drow2 = ds2.Tables[0].Rows[0];
+                pcloc = drow2["loccode"].ToString();
+                pcdesg = drow2["desgcode"].ToString();
+                pcindx = drow2["indx"].ToString();
+
+                //insert new row in emphistory
+                sql = string.Format("insert into pshr.emphistory(empid,eventcode,desgcode,loccode,rowno," +
+                            "eventhistoryid, pcloccode,sancdesg,sancindx,oonum,odate,status) values " +
+                            "({0},{1},{2},{3},(select nvl(max(rowno),0)+1 from pshr.emphistory where empid={0})," +
+                            "(select max(eventhistoryid)+1 from pshr.emphistory),'{4}','{5}','{6}','{7}',to_date('{8}'," +
+                            "'DD-MON-YYYY hh:mi:ss AM'),1)",
+                            empid, event_smap, "8888", "99999", pcloc, pcdesg, pcindx, oonum, oodate);
+                OraDBConnection.ExecQry(sql);
+
+                //update cadrmap
+                sql = "delete from cadre.cadrmap where empid = " + empid + " or rowno = " + newpcrow;
+                OraDBConnection.ExecQry(sql);
+                sql = string.Format("insert into cadre.cadrmap(empid,rowno) values ({0},{1})", empid, newpcrow);
+                OraDBConnection.ExecQry(sql);
+            }
+            else if (action == "COO")
+            {
+                canprop = drow["canprop"].ToString();
+                sql = string.Format("insert into cadre.DELETED_CHARGEREPORTS " +
+                "select * from cadre.chargereport where empid in ({0}) and propno = '{1}'", empid, canprop);
+                OraDBConnection.ExecQry(sql);
+                sql = string.Format("delete from cadre.chargereport where empid in ({0}) and propno = '{1}'",empid, canprop);
+                OraDBConnection.ExecQry(sql);
+            }
+        }
+    }
+    private void UpdateOnSaveActionsLink()
+    {
+        string sql = "select count(*) as cnt from cadre.saveactions where propno=" + PRONO;
+        lnkOnSaveAct.Text = string.Format("{0} Save Actions", OraDBConnection.GetScalar(sql));
+    }
     #endregion
 
     #region WebMethods
@@ -1458,6 +1564,7 @@ public partial class frmproposal : System.Web.UI.Page
             FillOutstandings();
         }
         FillGrid();
+        UpdateOnSaveActionsLink();
     }
     protected void txtLocFilter_TextChanged(object sender, EventArgs e)
     {
@@ -1531,6 +1638,12 @@ public partial class frmproposal : System.Web.UI.Page
         string dispright = txtDispRight.Text;
         string sysremarks = txtSysRemarks.Text;
         int flag_OwnInt = 0;
+
+        if (status == "CPC")
+        {
+            HandleChangePC(empid, prop_row);
+            return;
+        }
 
         //own intereset
         if (cbOwnInterest.Checked)
@@ -2137,6 +2250,7 @@ public partial class frmproposal : System.Web.UI.Page
 
         if (Save())
         {
+            Do_SaveActions();
             sql = string.Format("update cadre.tp_proposals set status='S',oonum='{0}',oodate='{1}' where pno={2}",
             txtOoNum.Text, txtOoDate.Text, PRONO);
 
@@ -2412,6 +2526,139 @@ public partial class frmproposal : System.Web.UI.Page
             btnSave.Enabled = btnUpload.Enabled = false;
             Utils.ShowMessageBox(this, "Code doesn't match");
         }
+    }
+    protected void btnChangePC_Click(object sender, EventArgs e)
+    {
+        string empid = hidEmpID.Value;
+
+        if (string.IsNullOrEmpty(empid)) return;
+        if (!(empid.StartsWith("10") || empid.StartsWith("11")))
+        {
+            Utils.ShowMessageBox(this, "Can only promote this officer");
+            return;
+        }
+
+        ClearRightFields();
+
+        DataSet ds = OraDBConnection.GetData(
+            "select cdesgcode,branchcode from pshr.empperso where empid = " +
+            empid);
+
+        hidsno.Value = "";
+        hidStatus.Value = "CPC";
+        hidolddesgcode.Value = ds.Tables[0].Rows[0]["cdesgcode"].ToString();
+        hidbranch.Value = ds.Tables[0].Rows[0]["branchcode"].ToString();
+
+        ds.Dispose();
+
+        FillAllLocations();
+        HandleUnderTransfer(empid);
+
+        lblInfo.Text = string.Format("Change PC {0} to:", empid);
+        //panProposed.Enabled = true;
+        divpropose.Disabled = false;
+    }
+    protected void btnCanOrd_Click(object sender, EventArgs e)
+    {
+        string empid = hidEmpID.Value;
+        string sql = string.Empty;
+        DataSet ds;
+        if (string.IsNullOrEmpty(empid)) return;
+        if (!(empid.StartsWith("10") || empid.StartsWith("11")))
+        {
+            Utils.ShowMessageBox(this, "Can only promote this officer");
+            return;
+        }
+
+        sql = string.Format("select oonum||'/'||oodate as oo,propno from cadre.chargereport where status <> 'JRA' and empid={0}", empid);
+        ds = OraDBConnection.GetData(sql);
+        drpCanOrders.DataSource = ds.Tables[0];
+        drpCanOrders.DataTextField = "oo";
+        drpCanOrders.DataValueField = "propno";
+        drpCanOrders.DataBind();
+        cancel_order.Visible = true;
+    }
+    protected void btnCanOrder_Click(object sender, EventArgs e)
+    {
+        string empid = hidEmpID.Value;
+        string canpropno = drpCanOrders.SelectedValue;
+        string sql = string.Empty;
+        string emp_name = string.Empty;
+        string data = string.Empty;
+        string bn_name = PRONO.ToString() + "_bg";
+        string tags = "auto, prono, cpc";
+
+        sql = string.Format("insert into cadre.saveactions(propno, empid, action, canprop) values ({0},{1},'COO',{2})",
+            PRONO, empid, canpropno);
+        OraDBConnection.ExecQry(sql);
+
+        emp_name = OraDBConnection.GetScalar(string.Format("select pshr.get_fullname({0}) as name from dual", empid));
+        data = string.Format("* The order of Er. {0} ({1}) under O/o {2} has been cancelled ", emp_name, empid, drpCanOrders.SelectedItem.Text);
+
+        //make/appendto bignote
+        sql = string.Format("merge into cadre.bignotes B using " +
+                        "(select '{0}' as n, '{1}' as t, '{2}' as d , 'N' as ty from dual) D " +
+                        "on (B.name = D.n and B.type='N') " +
+                        "when matched then update set B.tags = D.t, B.data = B.data || '\n' || D.d " +
+                        "when not matched then insert (name, tags, data, type, addedon) values (D.n, D.t, D.d, D.ty, sysdate)"
+                        , bn_name, tags, data);
+        OraDBConnection.ExecQry(sql);
+
+        //Re-fill bignotes drop down
+        FillBigNotesandCC();
+
+        //select this bignote for the proposal
+        ddBigNotes.SelectedIndex = ddBigNotes.Items.IndexOf(ddBigNotes.Items.FindByText(bn_name));
+
+        //set this bignote as default for the proposal
+        sql = string.Format("update cadre.tp_proposals set bignote='{0}' where pno = '{1}'", bn_name, PRONO);
+        OraDBConnection.ExecQry(sql);
+
+
+        cancel_order.Visible = false;
+        Utils.ShowMessageBox(this, "Orders will be cancelled on Save. Big Note Created/Updated");
+    }
+    protected void lnkOnSaveAct_Click(object sender, EventArgs e)
+    {
+        string sql = "select "+
+            "'Er. ' || pshr.get_fullname(empid) || ' (' || empid || '): ' || decode(action,'CPC', 'Change PC','COO','Change OO') as text, "+
+            "empid||'_'||action as val from cadre.saveactions where propno = " + PRONO;
+        DataSet ds = OraDBConnection.GetData(sql);
+        if (ds.Tables[0].Rows.Count == 0)
+        {
+            return;
+        }
+        drpSaveActions.DataSource = ds.Tables[0];
+        drpSaveActions.DataValueField = "val";
+        drpSaveActions.DataTextField = "text";
+        drpSaveActions.DataBind();
+        saveactions.Visible = true;
+    }
+    protected void btnDelSaveAction_Click(object sender, EventArgs e)
+    {
+        string empid = drpSaveActions.SelectedValue.Split('_')[0];
+        string action = drpSaveActions.SelectedValue.Split('_')[1];
+        string sql = string.Format("delete from cadre.saveactions where propno={0} and empid = {1} and action = '{2}'", PRONO, empid, action);
+        OraDBConnection.ExecQry(sql);
+        saveactions.Visible = false;
+        UpdateOnSaveActionsLink();
+        Utils.ShowMessageBox(this, "Action deleted. Please edit BigNote accordingly.");
+    }
+    protected void lnkEditBigNote_Click(object sender, EventArgs e)
+    {
+        string sql = string.Empty;
+        sql = string.Format("select name, tags, data, type from cadre.bignotes where name = '{0}'", ddBigNotes.SelectedValue);
+        DataRow drow = OraDBConnection.GetData(sql).Tables[0].Rows[0];
+        txtBigNote.Text = drow["data"].ToString();
+        editbignote.Visible = true;
+    }
+    protected void btnSaveBigNote_Click(object sender, EventArgs e)
+    {
+        string sql = string.Empty;
+        sql = string.Format("update cadre.bignotes set data = '{0}' where name='{1}'",txtBigNote.Text, ddBigNotes.SelectedValue);
+        OraDBConnection.ExecQry(sql);
+        editbignote.Visible = false;
+        Utils.ShowMessageBox(this, "BigNote saved");
     }
     #endregion
 }

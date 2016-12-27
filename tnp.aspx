@@ -9,6 +9,9 @@
         #grid {margin: auto; width:90%; clear: both; padding:5px; background-color:White; color:Black}
         #options {margin: auto; width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
         #prop_controls {margin: auto; width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
+        #cancel_order {margin: auto; width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
+        #saveactions {margin: auto; width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
+        #editbignote {margin: auto; width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
         #prev_controls {margin: auto;width:90%; clear: both; padding:5px; background-color:Silver; color:White; border-bottom-style:dotted}
         #genoo_controls {margin: auto;width:90%; clear: both; padding:5px; background-color:Silver; color:White;border-bottom-style:dotted}
         #priv_controls {margin: auto;width:90%; clear: both; padding:5px; background-color:Silver; color:White}
@@ -64,7 +67,11 @@
             <asp:Image ID="imgEmpPhoto" runat="server" />
             <p>
                 <asp:Button ID="btnTransfer" runat="server" Text="Transfer" onclick="btnTransfer_Click"/>
-                <asp:Button ID="btnPromote" runat="server" Text="Promote" onclick="btnPromote_Click"/>
+                <asp:Button ID="btnPromote" runat="server" Text="Promote" onclick="btnPromote_Click"/><br />
+                <asp:Button ID="btnChangePC" runat="server" Text="Change PC" 
+                    onclick="btnChangePC_Click" style="height: 26px" /><br />
+                <asp:Button ID="btnCanOrd" runat="server" Text="Cancel Order" 
+                    onclick="btnCanOrd_Click" />
             </p>
         </div>
         <div id="divpropose"  runat="server">
@@ -116,6 +123,7 @@
             </asp:GridView>
         </div>
         <div id="options">
+            <asp:LinkButton ID="lnkOnSaveAct" runat="server" onclick="lnkOnSaveAct_Click">4 On Save Actions</asp:LinkButton>
             <asp:Button Text="Auto Arrange" ID="btnAutoArrange" runat="server" 
                 onclick="btnAutoArrange_Click" />
             <asp:LinkButton ID = "lnkExport" Text="Export Entries" runat="server" 
@@ -123,6 +131,18 @@
             <asp:FileUpload ID="FileUploader" runat="server" Width="200px" />
             <asp:LinkButton ID = "lnkImport" Text="Import Entries" runat="server" 
                 onclick="lnkImport_Click" />
+        </div>
+        <div id="cancel_order" runat="server" visible=false>
+            <asp:DropDownList ID="drpCanOrders" runat="server">
+            </asp:DropDownList>
+            <asp:Button ID="btnCanOrder" runat="server" Text="Cancel This Order" 
+                onclick="btnCanOrder_Click" />
+        </div>
+        <div id="saveactions" runat="server" visible=false>
+            <asp:DropDownList ID="drpSaveActions" runat="server">
+            </asp:DropDownList>
+            <asp:Button ID="btnDelSaveAction" runat="server" Text="Delete Action" 
+                onclick="btnDelSaveAction_Click" />
         </div>
         <div id="prop_controls">
             <strong>Proposal Report: </strong>
@@ -160,9 +180,9 @@
                 onclick="btnPrintProposal_Click"/>
             <asp:Button ID="btnPDFProp" runat="server" Text="PDF Pvt Comm" onclick="btnPDFProp_Click"/>
             <asp:Button ID="btnXLSProp" runat="server" Text="XLS" onclick="btnXLSProp_Click"/>
-            <br />
+            <%--<br />--%>
             <asp:TextBox ID="txtPropLine" runat="server" TextMode="MultiLine" placeholder="First Line" Visible=false></asp:TextBox>
-            <br />
+            <%--<br />--%>
             <asp:TextBox ID="txtPropLastLine" runat="server" TextMode="MultiLine" placeholder="Last Line" Visible=false></asp:TextBox>
         </div>
         <div id="prev_controls">
@@ -170,6 +190,8 @@
             <%--<a href="frmnotes.aspx" target="_blank">Insert Notes</a>--%>
             <asp:DropDownList runat="server" ID="ddBigNotes">
             </asp:DropDownList>
+            <asp:LinkButton ID="lnkEditBigNote" runat="server" 
+                onclick="lnkEditBigNote_Click">Edit BigNote</asp:LinkButton>
             <asp:DropDownList runat="server" ID="ddBigCC">
             </asp:DropDownList>
             <%--<a href="CC.aspx" target="_blank">Insert CC List</a>--%>
@@ -186,6 +208,11 @@
                 <asp:ListItem>15</asp:ListItem>
               </asp:DropDownList>
             <asp:Button ID="btnPreview" runat="server" Text="Preview" onclick="btnPreview_Click"/>
+        </div>
+        <div id="editbignote" runat="server" visible=false>
+            <asp:TextBox ID="txtBigNote" runat="server" TextMode=MultiLine Height="100px" Width="60%"></asp:TextBox>
+            <asp:Button ID="btnSaveBigNote" runat="server" Text="Save" 
+                onclick="btnSaveBigNote_Click" />
         </div>
         <div id="genoo_controls">
             <strong>Generate O/o: </strong>
