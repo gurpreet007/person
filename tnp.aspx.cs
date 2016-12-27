@@ -1642,6 +1642,8 @@ public partial class frmproposal : System.Web.UI.Page
         if (status == "CPC")
         {
             HandleChangePC(empid, prop_row);
+            UpdateOnSaveActionsLink();
+            ClearRightFields();
             return;
         }
 
@@ -2581,13 +2583,19 @@ public partial class frmproposal : System.Web.UI.Page
     protected void btnCanOrder_Click(object sender, EventArgs e)
     {
         string empid = hidEmpID.Value;
-        string canpropno = drpCanOrders.SelectedValue;
+        string canpropno = string.Empty;
         string sql = string.Empty;
         string emp_name = string.Empty;
         string data = string.Empty;
         string bn_name = PRONO.ToString() + "_bg";
         string tags = "auto, prono, cpc";
 
+        if (drpCanOrders.Items.Count == 0)
+        {
+            cancel_order.Visible = false;
+            return;
+        }
+        canpropno = drpCanOrders.SelectedValue;
         sql = string.Format("insert into cadre.saveactions(propno, empid, action, canprop) values ({0},{1},'COO',{2})",
             PRONO, empid, canpropno);
         OraDBConnection.ExecQry(sql);
