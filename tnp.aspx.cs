@@ -2318,12 +2318,14 @@ public partial class frmproposal : System.Web.UI.Page
         OraDBConnection.ExecQry(sql);
 
         //set flags
+        //for u/t 1-nov-2016 is arbitratrary limit to not let old non-compliances effect the result
         sql = string.Format("select pc.empid, pc.sno, flag_ownint, decode(pc.status,'P',1,0) as flag_promo, nvl2(cm.empid,0,1) as flag_vacant," +
                             "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND pc.displacedid =pc2.empid AND rownum < 2 AND pc2.sno <> pc.sno) as vice_srno, " +
                             "case when pc.oldloccode=pc.cloccode and pc.cdesgcode = 9056  AND pc.cloccode <> 601000000 then 1 else 0 end as already_occ_post, " +
                             "CASE WHEN pc.last_event=17 THEN 1 ELSE 0 END AS reinst, " +
-                            "(select pshr.get_fullname(empid) from cadre.propcadrmap pc2 where pc2.PROPOSED_ROWNO = pc.PROPOSED_ROWNO " +
-                            "and status <> 'JRA' and pc2.propno!={0} and pc.PROPOSED_ROWNO>0 and rownum<=1) ut_emp " +
+                            "(select empid from cadre.chargereport where postjoin = pc.proposed_rowno and status<>'JRA' and oodate>'1-nov-2016' and rownum<=1) ut_empid, " +
+                            "(select pshr.get_fullname(empid) from cadre.chargereport where postjoin = pc.proposed_rowno and status<>'JRA' and oodate>'1-nov-2016' and rownum<=1) ut_emp, " +
+                            "(select oonum || ' dt. ' || oodate as oo from cadre.chargereport where postjoin = pc.proposed_rowno and status<>'JRA' and oodate>'1-nov-2016' and rownum<=1) ut_oonum " +
                             "from cadre.propcadrmap pc left outer join cadre.cadrmap cm on pc.proposed_rowno = cm.rowno where propno = {0} order by sno", PRONO);
         ds = OraDBConnection.GetData(sql);
         foreach (DataRow drow in ds.Tables[0].Rows)
@@ -2332,6 +2334,8 @@ public partial class frmproposal : System.Web.UI.Page
             string empid = drow["empid"].ToString();
             string sno = drow["sno"].ToString();
             string ut_emp = drow["ut_emp"].ToString();
+            string ut_empid = drow["ut_empid"].ToString();
+            string ut_oonum = drow["ut_oonum"].ToString();
             string newline = Environment.NewLine;
             string sysRemarks = string.Empty;
             string vicename = string.Empty;
@@ -2362,7 +2366,7 @@ public partial class frmproposal : System.Web.UI.Page
             if (flag_vice_retdays)
                 sysRemarks += string.Format("* Vice Er. {0} (Empid {1}) retiring on {2} {3}", vicename, viceid, retdate, newline);
             if (flag_undertrans)
-                sysRemarks += string.Format("* Vacant vide Er. {0} u/t", ut_emp);
+                sysRemarks += string.Format("* Vacant vide Er. {0} ({1}) u/t wide O/o {2}", ut_emp, ut_empid, ut_oonum);
 
             sql = string.Format("update cadre.propcadrmap set sysremarks = '{0}' where empid = '{1}' and propno = '{2}'", sysRemarks, empid, PRONO);
             OraDBConnection.ExecQry(sql);
