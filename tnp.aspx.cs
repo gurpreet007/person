@@ -879,13 +879,18 @@ public partial class frmproposal : System.Web.UI.Page
         string notes = "1";
         string propno = this.PRONO.ToString();
         string approver = ddApprover.SelectedValue;
-
+        string bignote = string.Empty;
+        if (ddBigNotes.SelectedValue != "")
+        {
+            bignote = OraDBConnection.GetScalar(string.Format("select data from cadre.bignotes where name = '{0}'", ddBigNotes.SelectedValue));
+        }
         string sql = "select m.sno,'" + notes + "' as notes," +
                     "'" + approver + "' as approver, " +
                     "'" + ddPropLineMode.SelectedValue + "' as proplinemode, " +
                     "'" + txtPropLine.Text + "' as proplinetext, " +
                     "'" + ddPropLastLineMode.SelectedValue + "' as proplastlinemode, " +
                     "'" + txtPropLastLine.Text + "' as proplastlinetext, " +
+                    "'" + bignote + "' as bignote, " +
                     ddFSize.SelectedValue + " as fsize, " +
                     "(select count(*) from cadre.propcadrmap where propno = " + propno + ") TotCount, " +
                     "(select count(*) from cadre.propcadrmap where status = 'P' and propno = " + propno + ") PCount, " +
@@ -925,13 +930,18 @@ public partial class frmproposal : System.Web.UI.Page
         string notes = "1";
         string propno = this.PRONO.ToString();
         string approver = ddApprover.SelectedValue;
-
+        string bignote = string.Empty;
+        if (ddBigNotes.SelectedValue != "")
+        {
+            bignote = OraDBConnection.GetScalar(string.Format("select data from cadre.bignotes where name = '{0}'", ddBigNotes.SelectedValue));
+        }
         string sql = "select m.sno, '" + notes + "' as notes," +
                     "'" + approver + "' as approver, " +
                     "'" + ddPropLineMode.SelectedValue + "' as proplinemode, " +
                     "'" + txtPropLine.Text + "' as proplinetext, " +
                     "'" + ddPropLastLineMode.SelectedValue + "' as proplastlinemode, " +
                     "'" + txtPropLastLine.Text + "' as proplastlinetext, " +
+                    "'" + bignote + "' as bignote, " +
                     ddFSize.SelectedValue + " as fsize, " +
                     "(select count(*) from cadre.propcadrmap where propno = " + propno + ") TotCount, " +
                     "(select count(*) from cadre.propcadrmap where status = 'P' and propno = " + propno + ") PCount, " +
@@ -1265,15 +1275,20 @@ public partial class frmproposal : System.Web.UI.Page
         string data = string.Empty;
         string emp_name = string.Empty;
         string loc_name = string.Empty;
+        string desg = string.Empty;
 
         sql = string.Format("insert into cadre.saveactions(propno, empid, action, new_pc_row) values ({0},{1},'CPC',{2})",
             PRONO, empid, newpc);
         OraDBConnection.ExecQry(sql);
 
-        emp_name = OraDBConnection.GetScalar(string.Format("select pshr.get_fullname({0}) as name from dual", empid));
-        loc_name = OraDBConnection.GetScalar(string.Format("select cadre.GET_MAPPING_TEXT_FROM_ROWNO({0}) as name from dual", newpc));
-        data = string.Format("* The paycharge of Er. {0} ({1}) has been changed to {2} ", emp_name, empid, loc_name);
+        sql = string.Format("select pshr.get_fullname(empid) as name, pshr.get_desg(cdesgcode) as desg, "+
+            "cadre.GET_MAPPING_TEXT_FROM_ROWNO({0}) as maptext from empperso where empid = {1}", newpc, empid);
+        DataRow drow = OraDBConnection.GetData(sql).Tables[0].Rows[0];
+        emp_name = drow["name"].ToString();
+        loc_name = drow["maptext"].ToString();
+        desg = drow["desg"].ToString();
 
+        data = string.Format("* The pay of Er. {0}, {1} ({2}) shall now be charged to the post of {3} ", emp_name, desg, empid, loc_name);
         //make/appendto bignote
         sql = string.Format("merge into cadre.bignotes B using " +
                         "(select '{0}' as n, '{1}' as t, '{2}' as d , 'N' as ty from dual) D " +
