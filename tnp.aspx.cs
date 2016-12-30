@@ -760,7 +760,7 @@ public partial class frmproposal : System.Web.UI.Page
                 "select max(oodate) from cadre.chargereport where " +
                 "oodate <(select max(oodate) from cadre.chargereport where empid = {0}) " +
                 "and empid={0}) and empid={0}) cr2 " +
-                "ON (cr2.status<>'JRA')" +
+                "ON (cr2.status<>'JRA' or cr2.status is null)" +
                 "WHEN MATCHED THEN UPDATE SET " +
                 "cr1.rep_off_rel=cr2.rep_off_rel, cr1.date_rel_req = cr2.date_rel_req, " +
                 "cr1.date_rel_accept=cr2.date_rel_accept, cr1.status=cr2.status, " +
@@ -1118,6 +1118,12 @@ public partial class frmproposal : System.Web.UI.Page
         ddBigNotes.DataBind();
         ddBigNotes.Items.Insert(0, new ListItem("Select Note", ""));
 
+        ddBaseNotes.DataSource = OraDBConnection.GetData(sql);
+        ddBaseNotes.DataTextField = "txtval";
+        ddBaseNotes.DataValueField = "name";
+        ddBaseNotes.DataBind();
+        ddBaseNotes.Items.Insert(0, new ListItem("Select Base Note", ""));
+
         sql = "select name, name as txtval from cadre.bigcc where type='N' order by addedon desc";
         ddBigCC.DataSource = OraDBConnection.GetData(sql);
         ddBigCC.DataTextField = "txtval";
@@ -1198,6 +1204,7 @@ public partial class frmproposal : System.Web.UI.Page
             retdate = ds.Tables[0].Rows[0]["Ret_Date"].ToString();
             retdays = int.Parse(ds.Tables[0].Rows[0]["Ret_Days"].ToString());
         }
+        
         return retdays;
     }
     private string UploadOrder()
@@ -1264,6 +1271,12 @@ public partial class frmproposal : System.Web.UI.Page
         {
             sql = string.Format("update cadre.tp_proposals set LASTLINEMODE = 'M', LASTLINETEXT = '{0}' where pno = '{1}'",
                 txtPropLastLine.Text, PRONO);
+            OraDBConnection.ExecQry(sql);
+        }
+        if (ddBigNotes.SelectedIndex > 0)
+        {
+            sql = string.Format("update cadre.tp_proposals set bignote='{0}' where pno = '{1}'",
+                ddBigNotes.SelectedValue, PRONO);
             OraDBConnection.ExecQry(sql);
         }
     }
@@ -1853,6 +1866,12 @@ public partial class frmproposal : System.Web.UI.Page
                 Utils.ShowMessageBox(this, "Unable to add displaced id");
                 return;
             }
+        }
+        else
+        {
+            //clear displacedid, to handle situations where posting is changed after dsplacing somebody.
+            sql = string.Format("update cadre.propcadrmap set displacedid=null where empid={0} and propno={1}", empid, propno);
+            OraDBConnection.ExecQry(sql);
         }
         FillGrid();
         ClearRightFields();
@@ -2449,14 +2468,16 @@ public partial class frmproposal : System.Web.UI.Page
         OraDBConnection.ExecQry(sql);
 
         //set flags
-        //for u/t 1-nov-2016 is arbitratrary limit to not let old non-compliances effect the result
         sql = string.Format("select pc.empid, pc.sno, flag_ownint, decode(pc.status,'P',1,0) as flag_promo, nvl2(cm.empid,0,1) as flag_vacant," +
                             "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND pc.displacedid =pc2.empid AND rownum < 2 AND pc2.sno <> pc.sno) as vice_srno, " +
                             "case when pc.oldloccode=pc.cloccode and pc.cdesgcode = 9056  AND pc.cloccode <> 601000000 then 1 else 0 end as already_occ_post, " +
                             "CASE WHEN pc.last_event=17 THEN 1 ELSE 0 END AS reinst, " +
-                            "(select empid from cadre.chargereport where postjoin = pc.proposed_rowno and status<>'JRA' and oodate>'1-nov-2016' and rownum<=1) ut_empid, " +
-                            "(select pshr.get_fullname(empid) from cadre.chargereport where postjoin = pc.proposed_rowno and status<>'JRA' and oodate>'1-nov-2016' and rownum<=1) ut_emp, " +
-                            "(select oonum || ' dt. ' || oodate as oo from cadre.chargereport where postjoin = pc.proposed_rowno and status<>'JRA' and oodate>'1-nov-2016' and rownum<=1) ut_oonum " +
+                            "(select empid from cadre.chargereport where oodate in(select max(oodate) "+
+                              "from cadre.chargereport where postrel = pc.proposed_rowno and (status<>'JRA' or status is null)) and postrel = pc.proposed_rowno and (status<>'JRA' or status is null)) ut_empid, " +
+                            "(select pshr.get_fullname(empid) from cadre.chargereport where oodate in(select max(oodate) "+
+                              "from cadre.chargereport where postrel = pc.proposed_rowno and (status<>'JRA' or status is null)) and postrel = pc.proposed_rowno and (status<>'JRA' or status is null)) ut_emp, " +
+                            "(select oonum || ' dt. ' || oodate from cadre.chargereport where oodate in(select max(oodate) "+
+                              "from cadre.chargereport where postrel = pc.proposed_rowno and (status<>'JRA' or status is null)) and postrel = pc.proposed_rowno and (status<>'JRA' or status is null)) ut_oonum " +
                             "from cadre.propcadrmap pc left outer join cadre.cadrmap cm on pc.proposed_rowno = cm.rowno where propno = {0} order by sno", PRONO);
         ds = OraDBConnection.GetData(sql);
         foreach (DataRow drow in ds.Tables[0].Rows)
@@ -2480,7 +2501,7 @@ public partial class frmproposal : System.Web.UI.Page
             bool flag_reinst = drow["reinst"].ToString() == "1";
             bool flag_undertrans = !String.IsNullOrEmpty(drow["ut_emp"].ToString());
             retddays = GetViceRetiree(empid, out viceid, out vicename, out retdate);
-            bool flag_vice_retdays = retddays != -1 && retddays <= 30;
+            bool flag_vice_retdays = retddays >=0 && retddays <= 30;
 
             if(flag_reinst)
                 sysRemarks += "* On Reinstatement" + newline;
@@ -2496,8 +2517,8 @@ public partial class frmproposal : System.Web.UI.Page
                 sysRemarks += "* Already Occupied Post " + newline;
             if (flag_vice_retdays)
                 sysRemarks += string.Format("* Vice Er. {0} (Empid {1}) retiring on {2} {3}", vicename, viceid, retdate, newline);
-            if (flag_undertrans)
-                sysRemarks += string.Format("* Vacant vide Er. {0} ({1}) u/t wide O/o {2}", ut_emp, ut_empid, ut_oonum);
+            if (flag_undertrans && String.IsNullOrWhiteSpace(vice_srno))
+                sysRemarks += string.Format("* Vacant vide Er. {0} ({1}) u/t vide O/o {2}", ut_emp, ut_empid, ut_oonum);
 
             sql = string.Format("update cadre.propcadrmap set sysremarks = '{0}' where empid = '{1}' and propno = '{2}'", sysRemarks, empid, PRONO);
             OraDBConnection.ExecQry(sql);
@@ -2587,7 +2608,7 @@ public partial class frmproposal : System.Web.UI.Page
             return;
         }
 
-        sql = string.Format("select oonum||'/'||oodate as oo,propno from cadre.chargereport where status <> 'JRA' and empid={0}", empid);
+        sql = string.Format("select oonum||'/'||oodate as oo,propno from cadre.chargereport where (status <> 'JRA' or status is null) and empid={0}", empid);
         ds = OraDBConnection.GetData(sql);
         drpCanOrders.DataSource = ds.Tables[0];
         drpCanOrders.DataTextField = "oo";
@@ -2601,10 +2622,11 @@ public partial class frmproposal : System.Web.UI.Page
         string canpropno = string.Empty;
         string sql = string.Empty;
         string emp_name = string.Empty;
+        string desg = string.Empty;
+        string srno = string.Empty;
         string data = string.Empty;
         string bn_name = PRONO.ToString() + "_bg";
         string tags = "auto, prono, cpc";
-
         if (drpCanOrders.Items.Count == 0)
         {
             cancel_order.Visible = false;
@@ -2615,8 +2637,13 @@ public partial class frmproposal : System.Web.UI.Page
             PRONO, empid, canpropno);
         OraDBConnection.ExecQry(sql);
 
-        emp_name = OraDBConnection.GetScalar(string.Format("select pshr.get_fullname({0}) as name from dual", empid));
-        data = string.Format("* The order of Er. {0} ({1}) under O/o {2} has been cancelled ", emp_name, empid, drpCanOrders.SelectedItem.Text);
+        DataRow drow = OraDBConnection.GetData(string.Format("select empid, pshr.get_fullname(empid) as emp_name,pshr.get_desg(olddesgcode) as desg,sno " +
+            "from cadre.propcadrmap where empid = {0} and propno = {1}", empid, canpropno)).Tables[0].Rows[0];
+        emp_name = drow["emp_name"].ToString();
+        desg = drow["desg"].ToString();
+        srno = drow["sno"].ToString();
+        data = string.Format("* The posting and transfer orders of Er. {0} {1} (EmpID {2}) "+
+            "appearing at Sr. No. {3} in O/o No. {4} are hereby cancelled. ",emp_name,desg,empid,srno,drpCanOrders.SelectedItem.Text);
 
         //make/appendto bignote
         sql = string.Format("merge into cadre.bignotes B using " +
@@ -2682,6 +2709,26 @@ public partial class frmproposal : System.Web.UI.Page
         OraDBConnection.ExecQry(sql);
         editbignote.Visible = false;
         Utils.ShowMessageBox(this, "BigNote saved");
+    }
+    protected void lnkMerge_Click(object sender, EventArgs e)
+    {
+        if (ddBaseNotes.SelectedIndex == 0)
+        {
+            Utils.ShowMessageBox(this, "Please select base note");
+            return;
+        }
+        if (ddBigNotes.SelectedIndex == 0)
+        {
+            Utils.ShowMessageBox(this, "Please select bignote");
+            return;
+        }
+        string basenotename = ddBaseNotes.SelectedItem.Text;
+        string notename = ddBigNotes.SelectedItem.Text;
+        string sql = string.Format("update cadre.bignotes set data = " +
+            "(select data from CADRE.BIGNOTES where name = '{0}') || '\n' || data where name = '{1}'",
+            basenotename, notename);
+        OraDBConnection.ExecQry(sql);
+        Utils.ShowMessageBox(this, "Notes Merged");
     }
     #endregion
 }

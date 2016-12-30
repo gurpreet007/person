@@ -27,6 +27,7 @@
         #lnkExport {margin-left:10px; margin-right:60px}
         #lnkImport {margin-right:10px}
         #locatePost{border-style:solid;border-width:1px}
+        .mainbut{padding:5px;width:110px;height:40px;}
         input[type=text].divsave {width:80px;}
         input[type=text].divpropose {width:80%;}
         textarea {width:80%;}
@@ -66,11 +67,11 @@
             <br />
             <asp:Image ID="imgEmpPhoto" runat="server" />
             <p>
-                <asp:Button ID="btnTransfer" runat="server" Text="Transfer" onclick="btnTransfer_Click"/>
-                <asp:Button ID="btnPromote" runat="server" Text="Promote" onclick="btnPromote_Click"/><br />
-                <asp:Button ID="btnChangePC" runat="server" Text="Change PC" 
-                    onclick="btnChangePC_Click" style="height: 26px" /><br />
-                <asp:Button ID="btnCanOrd" runat="server" Text="Cancel Order" 
+                <asp:Button class="mainbut" ID="btnTransfer" runat="server" Text="Transfer" onclick="btnTransfer_Click"/>
+                <asp:Button class="mainbut" ID="btnPromote" runat="server" Text="Promote" onclick="btnPromote_Click"/><br />
+                <asp:Button class="mainbut" ID="btnChangePC" runat="server" Text="Change PC" 
+                    onclick="btnChangePC_Click"/>
+                <asp:Button class="mainbut" ID="btnCanOrd" runat="server" Text="Cancel Order" 
                     onclick="btnCanOrd_Click" />
             </p>
         </div>
@@ -188,10 +189,12 @@
         <div id="prev_controls">
             <strong>Preview Report: </strong>
             <%--<a href="frmnotes.aspx" target="_blank">Insert Notes</a>--%>
+            <asp:DropDownList runat="server" ID="ddBaseNotes">
+            </asp:DropDownList>
             <asp:DropDownList runat="server" ID="ddBigNotes">
             </asp:DropDownList>
             <asp:LinkButton ID="lnkEditBigNote" runat="server" 
-                onclick="lnkEditBigNote_Click">Edit BigNote</asp:LinkButton>
+                onclick="lnkEditBigNote_Click">Edit</asp:LinkButton>
             <asp:DropDownList runat="server" ID="ddBigCC">
             </asp:DropDownList>
             <%--<a href="CC.aspx" target="_blank">Insert CC List</a>--%>
@@ -221,6 +224,7 @@
             <asp:TextBox ID="txtOoDate" runat="server" CssClass="divsave unwatermarked"></asp:TextBox>
             <asp:TextBox ID="txtEndorsNo" runat="server" CssClass="divsave unwatermarked" 
                 Width="100px"></asp:TextBox>
+            <asp:LinkButton ID="lnkMerge" runat="server" onclick="lnkMerge_Click">Base+Note</asp:LinkButton>
             <asp:Button ID="btnGenOO" runat="server" Text="Generate O/o" 
                 onclick="btnGenOO_Click"/>
        </div>
