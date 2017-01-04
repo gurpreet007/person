@@ -283,8 +283,8 @@ public partial class frmproposalmenu : System.Web.UI.Page
     }
     protected void lnkDownload_Click(object sender, EventArgs e)
     {
-        string oonum = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[6].Text;
-        string propno = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[2].Text;
+        string oonum = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[7].Text;
+        string propno = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[3].Text;
 
         string sql = "SELECT m.sno,  p.OONUM  AS oonum1,  to_char(p.OODATE,'dd-MM-yyyy')  AS oodate1,  '1' AS notes,  p.ENDONUM  AS endono,10  AS fsize," +
               "(SELECT COUNT(*) FROM cadre.propcadrmap WHERE propno = 163  )                                                                   AS TotCount," +
@@ -345,8 +345,8 @@ public partial class frmproposalmenu : System.Web.UI.Page
     }
     protected void lnkDownloadPrv_Click(object sender, EventArgs e)
     {
-        string oonum = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[6].Text;
-        string propno = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[2].Text;
+        string oonum = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[7].Text;
+        string propno = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[3].Text;
 
         string sql = "SELECT m.sno,  p.OONUM  AS oonum1,  to_char(p.OODATE,'dd-MM-yyyy')  AS oodate1,  '1' AS notes,  p.ENDONUM  AS endono,10  AS fsize," +
               "(SELECT COUNT(*) FROM cadre.propcadrmap WHERE propno = 163  )                                                                   AS TotCount," +
@@ -573,5 +573,12 @@ public partial class frmproposalmenu : System.Web.UI.Page
         txtpropname.Text = "";
         txtpropname.Text = "";
         FillGrid();
+    }
+    protected void lnkEdit_Click(object sender, EventArgs e)
+    {
+        Session["proposalno"] = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[3].Text;
+        Session["proposalname"] = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[4].Text;
+        Session["proposaldate"] = ((System.Web.UI.WebControls.GridViewRow)((((System.Web.UI.Control)(sender)).Parent).Parent)).Cells[5].Text;
+        Response.Redirect("~/tnp.aspx");
     }
 }
