@@ -562,6 +562,10 @@ public partial class frmproposal : System.Web.UI.Page
         int[] retd_events = new int[] { 11, 12, 13, 14, 15, 16, 89 };
         int[] susp_events = new int[] { 75, 17, 22 };
 
+        //clear already entered records of this proposal from chargereport table
+        sql = string.Format("delete from cadre.chargereport where propno = {0}", PRONO);
+        OraDBConnection.ExecQry(sql);
+
         //check if any outstanding entry is pending
         string out_count = OraDBConnection.GetScalar("select count(*) from cadre.propcadrmap where " +
             "status in ('T','P') and proposed_rowno is null and propno=" + PRONO);
@@ -652,8 +656,16 @@ public partial class frmproposal : System.Web.UI.Page
             {
                 DataRow row2;
                 DataSet ds2;
-                ds2 = OraDBConnection.GetData("select loccode,desgcode,indx from cadre.cadr where rowno=" + proposed_rowno);
-                row2 = ds2.Tables[0].Rows[0];
+                try
+                {
+                    ds2 = OraDBConnection.GetData("select loccode,desgcode,indx from cadre.cadr where rowno=" + proposed_rowno);
+                    row2 = ds2.Tables[0].Rows[0];
+                }
+                catch (Exception ex)
+                {
+                    Utils.ShowMessageBox(this, "Error. Check Proposed PC for empid: " + empid);
+                    return false;
+                }
                 pcloccode = row2["loccode"].ToString();
                 sancdesg = row2["desgcode"].ToString();
                 sancindx = row2["indx"].ToString();
@@ -1740,7 +1752,42 @@ public partial class frmproposal : System.Web.UI.Page
                 return;
             }
         }
+        sql=string.Format("select pshr.get_desg({0}) as desg from dual",cdesg);
+        string desgtext=String.Empty;
+           desgtext = OraDBConnection.GetScalar(sql);
 
+           sql = string.Format("select pshr.get_desg({0}) as desg from dual", olddesgcode);
+        string olddesgtext = String.Empty;
+        olddesgtext = OraDBConnection.GetScalar(sql);
+        // set left and right display
+        if (string.IsNullOrEmpty(txtDispLeft.Text) && oldloccode == "601000000")
+        {
+            
+            displeft= olddesgtext+" at the disposal of BBMB";
+        }
+        if (string.IsNullOrEmpty(txtDispRight.Text)&& cloc == "601000000")
+        {
+            if (hidStatus.Value == "P")
+            {
+                desgtext = "Offg: "+ desgtext;
+            }
+            dispright = desgtext + " at the disposal of BBMB";
+        }
+
+        if (string.IsNullOrEmpty(txtDispLeft.Text) && oldloccode == "503000000")
+        {
+            displeft = olddesgtext + " at the disposal of PSTCL";
+        }
+
+        if (string.IsNullOrEmpty(txtDispRight.Text) && cloc == "503000000")
+        {
+             if (hidStatus.Value == "P")
+            {
+                desgtext = "Offg: "+ desgtext;
+            }
+            dispright = desgtext + " at the disposal of PSTCL";
+        }
+               
         //get last event from emphistory
         //will be handy in case of events like Suspension, Leave etc
         sql = string.Format("select eventcode from emphistory where empid = {0} " +
@@ -2470,6 +2517,8 @@ public partial class frmproposal : System.Web.UI.Page
         //set flags
         sql = string.Format("select pc.empid, pc.sno, flag_ownint, decode(pc.status,'P',1,0) as flag_promo, nvl2(cm.empid,0,1) as flag_vacant," +
                             "(select pc2.sno from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.oldloccode = pc.cloccode AND pc.displacedid =pc2.empid AND rownum < 2 AND pc2.sno <> pc.sno) as vice_srno, " +
+                            "(select pshr.get_fullname(pc2.empid) as vicename from cadre.propcadrmap pc2 where pc2.propno = {0} and pc2.rowno = pc.PROPOSED_ROWNO "+
+                            "AND pc.displacedid =pc2.empid AND rownum < 2 AND pc2.proposed_rowno is null) as vice_emp, " +
                             "case when pc.oldloccode=pc.cloccode and pc.cdesgcode = 9056  AND pc.cloccode <> 601000000 then 1 else 0 end as already_occ_post, " +
                             "CASE WHEN pc.last_event=17 THEN 1 ELSE 0 END AS reinst, " +
                             "(select empid from cadre.chargereport where oodate in(select max(oodate) "+
@@ -2488,6 +2537,7 @@ public partial class frmproposal : System.Web.UI.Page
             string ut_emp = drow["ut_emp"].ToString();
             string ut_empid = drow["ut_empid"].ToString();
             string ut_oonum = drow["ut_oonum"].ToString();
+            string viceemp = drow["vice_emp"].ToString();
             string newline = Environment.NewLine;
             string sysRemarks = string.Empty;
             string vicename = string.Empty;
@@ -2500,6 +2550,7 @@ public partial class frmproposal : System.Web.UI.Page
             bool flag_alr_occ = drow["already_occ_post"].ToString() == "1";
             bool flag_reinst = drow["reinst"].ToString() == "1";
             bool flag_undertrans = !String.IsNullOrEmpty(drow["ut_emp"].ToString());
+            bool flag_isViceEmp = !String.IsNullOrEmpty(drow["vice_emp"].ToString());
             retddays = GetViceRetiree(empid, out viceid, out vicename, out retdate);
             bool flag_vice_retdays = retddays >=0 && retddays <= 30;
 
@@ -2507,7 +2558,7 @@ public partial class frmproposal : System.Web.UI.Page
                 sysRemarks += "* On Reinstatement" + newline;
             if (flag_promo)
                 sysRemarks += "* On Promotion" + newline;
-            if (flag_vacant)
+            if (flag_vacant && !flag_alr_occ)
                 sysRemarks += "* Against a Vacant Post" + newline;
             if (!String.IsNullOrWhiteSpace(vice_srno))
                 sysRemarks += "* Vice Sr. No. " + vice_srno + newline;
@@ -2517,6 +2568,8 @@ public partial class frmproposal : System.Web.UI.Page
                 sysRemarks += "* Already Occupied Post " + newline;
             if (flag_vice_retdays)
                 sysRemarks += string.Format("* Vice Er. {0} (Empid {1}) retiring on {2} {3}", vicename, viceid, retdate, newline);
+            if (flag_isViceEmp && !flag_vice_retdays)
+                sysRemarks += "* Vice Er. " + viceemp + newline;
             if (flag_undertrans && String.IsNullOrWhiteSpace(vice_srno))
                 sysRemarks += string.Format("* Vacant vide Er. {0} ({1}) u/t vide O/o {2}", ut_emp, ut_empid, ut_oonum);
 
