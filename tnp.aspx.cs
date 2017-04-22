@@ -539,6 +539,12 @@ public partial class frmproposal : System.Web.UI.Page
                     odate.ToString("dd-MMM-yyyy hh:mm:ss tt"));
         OraDBConnection.ExecQry(sql);
     }
+    private bool isDeputation(string loccode)
+    {
+        return loccode.StartsWith("6") ||
+               loccode.StartsWith("7") ||
+               loccode.StartsWith("50300");
+    }
     private bool Save()
     {
         string empid, eventcode, cdesgcode, cloccode, proposed_rowno, oldrowno, newempid, lastevent;
@@ -562,7 +568,7 @@ public partial class frmproposal : System.Web.UI.Page
         int[] retd_events = new int[] { 11, 12, 13, 14, 15, 16, 89 };
         int[] susp_events = new int[] { 75, 17, 22 };
 
-        //clear already entered records of this proposal from chargereport table
+        //clear already entered recrods of this proposal from chargereport table
         sql = string.Format("delete from cadre.chargereport where propno = {0}", PRONO);
         OraDBConnection.ExecQry(sql);
 
@@ -616,24 +622,33 @@ public partial class frmproposal : System.Web.UI.Page
             cloccode = row["cloccode"].ToString();
 
             lastevent = row["last_event"].ToString();
-            int rel_skip = (leave_events.Contains(int.Parse(lastevent)) 
+            string skip = (leave_events.Contains(int.Parse(lastevent)) 
                             || susp_events.Contains(int.Parse(lastevent))) 
-                            ? 1 : 0;
+                            ? "R" : "";
 
             //if location is "On Leave" then set eventcode to LELS
             if (cloccode == "999999999")
             {
                 eventcode = "2";
+                skip = "J";
             }
 
             oldrowno = row["rowno"].ToString();
             proposed_rowno = row["proposed_rowno"].ToString();
             newempid = row["newempid"].ToString();
             oldLoccode = row["oldloccode"].ToString();
-            if (oldLoccode.StartsWith("6") ||
-                oldLoccode.StartsWith("7"))
+
+            if (isDeputation(oldLoccode) && isDeputation(cloccode))
             {
-                rel_skip = 1;
+                continue;
+            }
+            else if (isDeputation(oldLoccode))
+            {
+                skip = "R";
+            }
+            else if (isDeputation(cloccode))
+            {
+                skip = "J";
             }
             oldDesgcode = row["olddesgcode"].ToString();
             if (string.IsNullOrEmpty(proposed_rowno))
@@ -738,9 +753,14 @@ public partial class frmproposal : System.Web.UI.Page
                 DateTime outDate;
                 if (DateTime.TryParse(remDate, out outDate))
                 {
-                    sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode, eventdate,oldloccode,olddesgcode, propno,last_event,rel_skip, status, date_rel_req, date_rel_accept) " +
-                    "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}','10','{11}','{12}','{13}',{14},{14})",
-                    empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, remDate, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "''");
+                    //sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode, eventdate,oldloccode,olddesgcode, propno,last_event,skip, status, date_rel_req, date_rel_accept) " +
+                    //"values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}','10','{11}','{12}','{13}',{14},{14)",
+                    //empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, remDate, oldLoccode, oldDesgcode, PRONO, lastevent, skip, skip == "R" ? "RRA" : "", skip == "R" ? "sysdate" : "''");
+
+                    sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode, eventdate,oldloccode,olddesgcode, propno,last_event,skip, status) " +
+                    "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}','10','{11}','{12}','{13}')",
+                    empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, remDate, oldLoccode, oldDesgcode, PRONO, lastevent, skip, skip == "R" ? "RRA" : "");
+                
                 }
                 else
                 {
@@ -750,16 +770,24 @@ public partial class frmproposal : System.Web.UI.Page
             }
             else if (rowType == rowTypes.SPECIAL_LOC)
             {
-                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode,newempid,oldloccode, olddesgcode, propno,last_event,rel_skip, status, date_rel_req, date_rel_accept) " +
-                   "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}', '{10}','{11}','{12}','{13}',{14},{14})",
-                   empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "''");
+                //sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode,newempid,oldloccode, olddesgcode, propno,last_event,skip, status, date_rel_req, date_rel_accept) " +
+                //   "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}', '{10}','{11}','{12}','{13}',{14},{14})",
+                //   empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, skip, skip == "R" ? "RRA" : "", skip == "R" ? "sysdate" : "''");
+                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, eventcode, loccode, desgcode,newempid,oldloccode, olddesgcode, propno,last_event,skip, status) " +
+                       "values({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}', '{10}','{11}','{12}','{13}')",
+                       empid, oonum, oodate, oldrowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, skip, skip == "R" ? "RRA" : "");
+           
             }
             else if (rowType == rowTypes.NORMAL)
             {
                 //in case of normal location
-                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, postjoin, eventcode, loccode, desgcode, newempid, oldloccode, olddesgcode, propno,last_event,rel_skip,status, date_rel_req, date_rel_accept) " +
-                    "values({0},'{1}','{2}',{3},{4},{5},{6},{7},'{8}','{9}','{10}', '{11}','{12}','{13}','{14}',{15},{15})",
-                    empid, oonum, oodate, oldrowno, proposed_rowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, rel_skip, rel_skip == 1 ? "RRA" : "", rel_skip == 1 ? "sysdate" : "''");
+                //sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, postjoin, eventcode, loccode, desgcode, newempid, oldloccode, olddesgcode, propno,last_event,skip,status, date_rel_req, date_rel_accept) " +
+                //    "values({0},'{1}','{2}',{3},{4},{5},{6},{7},'{8}','{9}','{10}', '{11}','{12}','{13}','{14}',{15},{15})",
+                //    empid, oonum, oodate, oldrowno, proposed_rowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, skip, skip == "R" ? "RRA" : "", skip == "R" ? "sysdate" : "''");
+                sql = string.Format("insert into cadre.chargereport(empid, oonum, oodate, postrel, postjoin, eventcode, loccode, desgcode, newempid, oldloccode, olddesgcode, propno,last_event,skip,status) " +
+                        "values({0},'{1}','{2}',{3},{4},{5},{6},{7},'{8}','{9}','{10}', '{11}','{12}','{13}','{14}')",
+                        empid, oonum, oodate, oldrowno, proposed_rowno, eventcode, cloccode, cdesgcode, newempid, oldLoccode, oldDesgcode, PRONO, lastevent, skip, skip == "R" ? "RRA" : "");
+           
             }
 
             //to handle under transfer cases 
@@ -767,12 +795,12 @@ public partial class frmproposal : System.Web.UI.Page
             //so that relieving again from same location is avoided
             sql_merge = string.Format("merge into cadre.chargereport cr1 using " +
                 "(select rep_off_rel, date_rel_req, date_rel_accept, " +
-                "decode(status,'JRS','RRA',status) status, rel_off_comment " +
+                "decode(status,'JRS','RRA',status) status, complete, rel_off_comment " +
                 "from cadre.chargereport where oodate = (" +
                 "select max(oodate) from cadre.chargereport where " +
                 "oodate <(select max(oodate) from cadre.chargereport where empid = {0}) " +
                 "and empid={0}) and empid={0}) cr2 " +
-                "ON (cr2.status<>'JRA' or cr2.status is null)" +
+                "ON (cr2.complete<>1 or cr2.complete is null)" +
                 "WHEN MATCHED THEN UPDATE SET " +
                 "cr1.rep_off_rel=cr2.rep_off_rel, cr1.date_rel_req = cr2.date_rel_req, " +
                 "cr1.date_rel_accept=cr2.date_rel_accept, cr1.status=cr2.status, " +
@@ -2605,6 +2633,7 @@ public partial class frmproposal : System.Web.UI.Page
     }
     protected void btnCheckOTP_Click(object sender, EventArgs e)
     {
+       
         if (Session["code"] != null &&
             Session["code"].ToString().Length > 0 &&
             Session["code"].ToString() == txtOTP.Text)
